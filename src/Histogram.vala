@@ -2,11 +2,12 @@ namespace HdrHistogram {
     
     public class Histogram : AbstractHistogram {
         internal int64 total_count;
-        internal int64[] counts = {};
+        internal int64[] counts;
         internal int normalizing_index_offset;
 
         public Histogram(int64 lowest_discernible_value, int64 highest_trackable_value, int8 number_of_significant_value_digits) {
             base(lowest_discernible_value, highest_trackable_value, number_of_significant_value_digits);
+            counts.resize(counts_array_length);
         }
 
         public override int64 get_total_count() {
