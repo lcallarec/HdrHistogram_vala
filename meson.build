@@ -1,0 +1,14 @@
+project('HdrHistogram_vala', ['vala', 'c'], version: '0.1')
+
+cc = meson.get_compiler('c')
+libm = cc.find_library('m', required: true)
+
+glib = dependency('glib-2.0')
+gobject = dependency('gobject-2.0')
+
+vala_args = []
+
+deps = [libm, glib, gobject]
+
+subdir('src')
+subdir('tests')
