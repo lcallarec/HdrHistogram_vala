@@ -149,6 +149,17 @@ namespace HdrHistogram {
             increment_total_count();
         }
 
+
+        /**
+         * Control whether or not the histogram can auto-resize and auto-adjust its
+         * highest_trackable_value
+         * 
+         * @param auto_resize auto_resize setting
+         */
+        public void set_auto_resize(bool auto_resize) {
+            this.auto_resize = auto_resize;
+        }
+
         internal void update_min_and_max(int64 value) {
             if (value > max_value) {
                 updated_max_value(value);

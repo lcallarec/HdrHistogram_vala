@@ -43,6 +43,21 @@ namespace HdrHistogram {
             var result = histogram.record_value(10000);
             assert(result == false);
         });
+
+        Test.add_func("/HdrHistogram/Histogram/recordValue#Should record a value far above highest_trackable_value when auto resize in on", () => {
+            // given
+            var histogram = new Histogram(1, 2048, 3);
+            histogram.set_auto_resize(true);
+            
+            //when //then
+            try {
+                histogram.record_single_value(10000);
+                var result = histogram.record_value(10000);
+                assert(result == true);
+            } catch {
+                assert_not_reached();
+            }
+        });        
     }
 }
 
