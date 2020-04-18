@@ -2,7 +2,10 @@ namespace HdrHistogram {
 
     public errordomain HdrError {
         ILLEGAL_ARGUMENT,
-        INDEX_OUT_OF_BOUNDS
+        INDEX_OUT_OF_BOUNDS,
+        CONCURRENT_MODIFICATION_EXCEPTION,
+        NO_SUCH_ELEMENT,
+        UNSUPPORTED_OPERATION
     }
 
     /**
@@ -26,6 +29,14 @@ namespace HdrHistogram {
          */
         internal int sub_bucket_count;
         internal int counts_array_length;
+
+        internal double integer_to_double_value_conversion_ratio = 1.0;
+
+        internal RecordedValuesIterator recorded_values_iterator;
+
+        internal double get_integer_to_double_value_conversion_ratio() {
+            return integer_to_double_value_conversion_ratio;
+        }
     }
 
     public abstract class AbstractHistogram : AbstractHistogramBase {
@@ -126,6 +137,8 @@ namespace HdrHistogram {
             sub_bucket_mask = ((long)sub_bucket_count - 1) << unit_magnitude;
 
             establish_size(highest_trackable_value);
+
+            recorded_values_iterator = new RecordedValuesIterator(this);            
         }
 
         public bool record_value(int64 value) {
@@ -294,7 +307,19 @@ namespace HdrHistogram {
             }
             return normalized_index;
         }
-        
+
+        /**
+         * Get a value that lies in the middle (rounded up) of the range of values equivalent the given value.
+         * Where "equivalent" means that value samples recorded for any two
+         * equivalent values are counted in a common total count.
+         *
+         * @param value The given value
+         * @return The value lies in the middle (rounded up) of the range of values equivalent the given value.
+         */
+        public int64 median_equivalent_value(int64 value) {
+            return (lowest_equivalent_value(value) + (size_of_equivalent_value_range(value) >> 1));
+        }
+
         /**
          * Get the highest value that is equivalent to the given value within the histogram's resolution.
          * Where "equivalent" means that value samples recorded for any two
@@ -382,6 +407,25 @@ namespace HdrHistogram {
                     int64.MAX : lowest_equivalent_value(min_non_zero_value);
         }
 
+        /**
+         * Get the computed mean value of all recorded values in the histogram
+         *
+         * @return the mean value (in value units) of the histogram data
+         */
+        public double get_mean() {
+            if (get_total_count() == 0) {
+                return 0.0;
+            }
+            recorded_values_iterator.reset();
+            double total_value = 0;
+            while (recorded_values_iterator.has_next()) {
+                HistogramIterationValue iteration_value = recorded_values_iterator.next();
+                total_value += median_equivalent_value(iteration_value.get_value_iterated_to())
+                        * (double) iteration_value.get_count_at_value_iterated_to();
+            }
+            return (total_value * 1.0) / get_total_count();
+        }
+
         internal int64 value_from_index(int index) {
             int bucket_index = (index >> sub_bucket_half_count_magnitude) - 1;
             int sub_bucket_index = (index & (sub_bucket_half_count - 1)) + sub_bucket_half_count;
@@ -409,6 +453,5 @@ namespace HdrHistogram {
             int64 internal_value = value & ~unit_magnitude_mask; // Min unit-equivalent value
             min_non_zero_value = internal_value;
         }
-        
     }
 }

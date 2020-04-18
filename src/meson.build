@@ -1,9 +1,13 @@
 
 sources = files(
     'AbstractHistogram.vala',
+    'AbstractHistogramIterator.vala',
     'Arrays.vala',
     'Histogram.vala',
-    'Int64.vala'
+    'HistogramIterationValue.vala',
+    'Int64.vala',
+    'Iterator.vala',
+    'RecordedValuesIterator.vala'
 )
 
 hdrhistogram_static_lib = static_library('HdrHistogram', [sources], dependencies: deps, vala_args: vala_args)

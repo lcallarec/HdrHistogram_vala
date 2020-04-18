@@ -57,6 +57,20 @@ namespace HdrHistogram {
             } catch {
                 assert_not_reached();
             }
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/mean", () => {
+            // given
+            var histogram = new Histogram(1, 1000, 3);
+
+            // when
+            histogram.record_value(100);
+            histogram.record_value(150);
+            histogram.record_value(200);
+ 
+            
+            //when
+            assert(histogram.get_mean() == 150);
         });        
     }
 }
