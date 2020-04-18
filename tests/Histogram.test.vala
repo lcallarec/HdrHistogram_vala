@@ -22,11 +22,26 @@ namespace HdrHistogram {
             var histogram = new Histogram(1, 9007199254740991, 3);
             
             //when
-            histogram.record_value(100);
+            var result = histogram.record_value(100);
 
             // then
+            assert(result == true);
             assert(histogram.get_min_value() == 100);
             assert(histogram.get_max_value() == 100);
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/recordValue#Should not record a value far above highest_trackable_value", () => {
+            // given
+            var histogram = new Histogram(1, 2048, 3);
+            
+            //when //then
+            try {
+                histogram.record_single_value(10000);
+                assert_not_reached();
+            } catch {}
+
+            var result = histogram.record_value(10000);
+            assert(result == false);
         });
     }
 }

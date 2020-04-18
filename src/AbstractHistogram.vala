@@ -1,6 +1,6 @@
 namespace HdrHistogram { 
 
-    public errordomain Error {
+    public errordomain HdrError {
         ILLEGAL_ARGUMENT,
         INDEX_OUT_OF_BOUNDS
     }
@@ -55,7 +55,7 @@ namespace HdrHistogram {
         int64 min_non_zero_value = int64.MAX;
 
         // Abstract methods
-        internal abstract void increment_count_at_index(int index) throws Error.INDEX_OUT_OF_BOUNDS;
+        internal abstract void increment_count_at_index(int index) throws HdrError;
         internal abstract void resize(int64 new_highest_trackable_value);
         internal abstract void add_to_count_at_index(int index, int64 value);
         internal abstract void increment_total_count();
@@ -128,18 +128,23 @@ namespace HdrHistogram {
             establish_size(highest_trackable_value);
         }
 
-        public void record_value(int64 value) {
-            record_single_value(value);
+        public bool record_value(int64 value) {
+            try {
+                record_single_value(value);
+                return true;
+            } catch {
+                return false;
+            }
         }
 
-        public void record_single_value(int64 value) {
+        public void record_single_value(int64 value) throws HdrError {
             var counts_index = counts_array_index(value);
             try {
                 increment_count_at_index(counts_index);
-            } catch (Error.INDEX_OUT_OF_BOUNDS e) {
+            } catch (HdrError.INDEX_OUT_OF_BOUNDS e) {
                 handle_record_exception(1, value, e);
             }
-                           
+
             update_min_and_max(value);
             increment_total_count();
         }
@@ -163,9 +168,9 @@ namespace HdrHistogram {
             max_value = internal_value;
         }
 
-        private void handle_record_exception(int64 count, int64 value, Error e) {
+        private void handle_record_exception(int64 count, int64 value, HdrError e) throws HdrError.INDEX_OUT_OF_BOUNDS {
             if (!auto_resize) {
-                throw new Error.INDEX_OUT_OF_BOUNDS(@"value $value outside of histogram covered range. Caused by: " + e.message);
+                throw new HdrError.INDEX_OUT_OF_BOUNDS(@"value $value outside of histogram covered range. Caused by: " + e.message);
             }
             resize(value);
             int counts_index = counts_array_index(value);

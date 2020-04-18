@@ -26,10 +26,10 @@ namespace HdrHistogram {
             counts[normalize_index(index, normalizing_index_offset, counts_array_length)] += value;
         }
 
-        internal override void increment_count_at_index(int index) throws Error.INDEX_OUT_OF_BOUNDS {
+        internal override void increment_count_at_index(int index) throws HdrError {
             var normalized_index = normalize_index(index, normalizing_index_offset, counts_array_length);
             if (normalized_index > counts.length -1) {
-                throw new Error.INDEX_OUT_OF_BOUNDS("In increment_count_at_index");
+                throw new HdrError.INDEX_OUT_OF_BOUNDS("In increment_count_at_index");
             }
             counts[normalized_index]++;
         }
