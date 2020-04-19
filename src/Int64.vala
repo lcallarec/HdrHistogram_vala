@@ -15,6 +15,5 @@ namespace HdrHistogram.Int64 {
         n -= (int) ( x >> 31);
 
         return n;
-
     }
 }

@@ -61,7 +61,8 @@ namespace HdrHistogram {
         /**
          * Lowest unitMagnitude bits are set
          */
-        int64 unit_magnitude_mask;        
+        int64 unit_magnitude_mask;  
+
         int64 max_value = 0;
         int64 min_non_zero_value = int64.MAX;
 
@@ -424,6 +425,27 @@ namespace HdrHistogram {
                         * (double) iteration_value.get_count_at_value_iterated_to();
             }
             return (total_value * 1.0) / get_total_count();
+        }
+
+        /**
+         * Get the computed standard deviation of all recorded values in the histogram
+         *
+         * @return the standard deviation (in value units) of the histogram data
+         */
+        public double get_std_deviation() {
+            if (get_total_count() == 0) {
+                return 0.0;
+            }
+            double mean = get_mean();
+            double geometric_deviation_total = 0.0;
+            recorded_values_iterator.reset();
+            while (recorded_values_iterator.has_next()) {
+                HistogramIterationValue iteration_value = recorded_values_iterator.next();
+                double deviation = (median_equivalent_value(iteration_value.get_value_iterated_to()) * 1.0) - mean;
+                geometric_deviation_total += (deviation * deviation) * iteration_value.get_count_added_in_this_iteration_step();
+            }
+            double std_deviation = Math.sqrt(geometric_deviation_total / get_total_count());
+            return std_deviation;
         }
 
         internal int64 value_from_index(int index) {

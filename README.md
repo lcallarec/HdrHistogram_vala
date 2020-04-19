@@ -8,9 +8,10 @@ This is still WIP, ready soon !
 - [x] Auto resize
 - [ ] Reset
 - [x] Get mean
-- [ ] Get std deviation
-- [ ] Handle concurrent access in RecordedValuesIterator
+- [x] Get std deviation
 - [ ] Get percentiles
+- [ ] Java AtomicLong > Vala counterpart
+- [ ] Handle concurrent access in RecordedValuesIterator
 - [ ] Output percentile distribution
 - [ ] Corrected coordinated omissions
 - [ ] Tags

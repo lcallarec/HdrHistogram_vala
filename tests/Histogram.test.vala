@@ -59,7 +59,7 @@ namespace HdrHistogram {
             }
         });
 
-        Test.add_func("/HdrHistogram/Histogram/mean", () => {
+        Test.add_func("/HdrHistogram/Histogram/get_mean", () => {
             // given
             var histogram = new Histogram(1, 1000, 3);
 
@@ -71,9 +71,22 @@ namespace HdrHistogram {
             
             //when
             assert(histogram.get_mean() == 150);
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/get_std_deviation", () => {
+            // given
+            var histogram = new Histogram(1, 1000, 3);
+
+            // when
+            histogram.record_value(100);
+            histogram.record_value(150);
+            histogram.record_value(200);
+            histogram.record_value(250);
+            histogram.record_value(300);
+             
+            //when
+            assert(histogram.get_std_deviation() > 70.71067811865);
+            assert(histogram.get_std_deviation() < 70.71067811866);
         });        
     }
 }
-
-
-
