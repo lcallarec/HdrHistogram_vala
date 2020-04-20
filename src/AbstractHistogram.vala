@@ -71,7 +71,7 @@ namespace HdrHistogram {
         internal abstract void resize(int64 new_highest_trackable_value);
         internal abstract void add_to_count_at_index(int index, int64 value);
         internal abstract void increment_total_count();
-        internal abstract int64 get_count_at_index(int index);
+        internal abstract int64 get_count_at_index(int index) throws HdrError.INDEX_OUT_OF_BOUNDS;
 
         /**
          * Get the total count of all recorded values in the histogram
@@ -381,7 +381,11 @@ namespace HdrHistogram {
          * @return the Min value recorded in the histogram
          */
         public int64 get_min_value() {
-            if ((get_count_at_index(0) > 0) || (get_total_count() == 0)) {
+            try {
+                if ((get_count_at_index(0) > 0) || (get_total_count() == 0)) {
+                    return 0;
+                }
+            } catch {
                 return 0;
             }
             return get_min_non_zero_value();
@@ -404,8 +408,7 @@ namespace HdrHistogram {
          * @return the lowest recorded non-zero value level in the histogram
          */
         public int64 get_min_non_zero_value() {
-            return (min_non_zero_value == int64.MAX) ?
-                    int64.MAX : lowest_equivalent_value(min_non_zero_value);
+            return (min_non_zero_value == int64.MAX) ? int64.MAX : lowest_equivalent_value(min_non_zero_value);
         }
 
         /**
@@ -413,7 +416,7 @@ namespace HdrHistogram {
          *
          * @return the mean value (in value units) of the histogram data
          */
-        public double get_mean() {
+        public double get_mean() throws HdrError {
             if (get_total_count() == 0) {
                 return 0.0;
             }
@@ -432,7 +435,7 @@ namespace HdrHistogram {
          *
          * @return the standard deviation (in value units) of the histogram data
          */
-        public double get_std_deviation() {
+        public double get_std_deviation() throws HdrError {
             if (get_total_count() == 0) {
                 return 0.0;
             }
@@ -460,11 +463,10 @@ namespace HdrHistogram {
          * @return The largest value that (100% - percentile) [+/- 1 ulp] of the overall recorded value entries
          * in the histogram are either larger than or equivalent to. Returns 0 if no recorded values exist.
          */
-        public int64 get_value_at_percentile(double percentile) {
+        public int64 get_value_at_percentile(double percentile) throws HdrError {
             // Truncate to 0..100%, and remove 1 ulp to avoid roundoff overruns into next bucket when we
             // subsequently round up to the nearest integer:
-            double requested_percentile =
-                    double.min(double.max(Math.nextafter(percentile, -double.INFINITY), 0.0), 100.0);
+            double requested_percentile = double.min(double.max(Math.nextafter(percentile, -double.INFINITY), 0.0), 100.0);
             // derive the count at the requested percentile. We round up to nearest integer to ensure that the
             // largest value that the requested percentile of overall recorded values is <= is actually included.
             double fp_count_at_percentile = (requested_percentile * get_total_count()) / 100.0;
@@ -496,7 +498,7 @@ namespace HdrHistogram {
          * @return The percentile of values recorded in the histogram that are smaller than or equivalent
          * to the given value.
          */
-        public double get_percentile_at_or_below_value(int64 value) {
+        public double get_percentile_at_or_below_value(int64 value) throws HdrError {
             if (get_total_count() == 0) {
                 return 100.0;
             }
@@ -506,6 +508,39 @@ namespace HdrHistogram {
                 total_to_current_index += get_count_at_index(i);
             }
             return (100.0 * total_to_current_index) / get_total_count();
+        }
+
+        /**
+         * Get the count of recorded values within a range of value levels (inclusive to within the histogram's resolution).
+         *
+         * @param low_value  The lower value bound on the range for which
+         *                  to provide the recorded count. Will be rounded down with
+         *                  {@link Histogram#lowest_equivalent_value lowest_equivalent_value}.
+         * @param high_value  The higher value bound on the range for which to provide the recorded count.
+         *                   Will be rounded up with {@link Histogram#highest_equivalent_value highest_equivalent_value}.
+         * @return the total count of values recorded in the histogram within the value range that is
+         * {@literal >=} lowest_equivalent_value(<i>low_value</i>) and {@literal <=} highest_equivalent_value(<i>high_value</i>)
+         */
+        public int64 get_count_between_values(int64 low_value, int64 high_value) throws HdrError.INDEX_OUT_OF_BOUNDS {
+            int lowIndex = int.max(0, counts_array_index(low_value));
+            int highIndex = int.min(counts_array_index(high_value), (counts_array_length - 1));
+            int64 count = 0;
+            for (int i = lowIndex ; i <= highIndex; i++) {
+                count += get_count_at_index(i);
+            }
+            return count;
+        }
+
+        /**
+         * Get the count of recorded values at a specific value (to within the histogram resolution at the value level).
+         *
+         * @param value The value for which to provide the recorded count
+         * @return The total count of values recorded in the histogram within the value range that is
+         * {@literal >=} lowest_equivalent_value(<i>value</i>) and {@literal <=} highest_equivalent_value(<i>value</i>)
+         */
+        public int64 getCountAtValue(int64 value) throws HdrError.INDEX_OUT_OF_BOUNDS {
+            int index = int.min(int.max(0, counts_array_index(value)), (counts_array_length - 1));
+            return get_count_at_index(index);
         }
 
         internal int64 value_from_index(int index) {
