@@ -61,7 +61,7 @@ namespace HdrHistogram {
 
         Test.add_func("/HdrHistogram/Histogram/get_mean", () => {
             // given
-            var histogram = new Histogram(1, 1000, 3);
+            var histogram = new Histogram(1, 1024, 3);
 
             // when
             histogram.record_value(100);
@@ -79,7 +79,7 @@ namespace HdrHistogram {
 
         Test.add_func("/HdrHistogram/Histogram/get_std_deviation", () => {
             // given
-            var histogram = new Histogram(1, 1000, 3);
+            var histogram = new Histogram(1, 1024, 3);
 
             // when
             histogram.record_value(100);
@@ -99,7 +99,7 @@ namespace HdrHistogram {
 
         Test.add_func("/HdrHistogram/Histogram/get_value_at_percentile", () => {
             // given
-            var histogram = new Histogram(1, 1000, 3);
+            var histogram = new Histogram(1, 1024, 3);
 
             // when
             histogram.record_value(115);
@@ -120,7 +120,7 @@ namespace HdrHistogram {
 
         Test.add_func("/HdrHistogram/Histogram/get_percentile_at_or_below_value", () => {
             // given
-            var histogram = new Histogram(1, 1000, 3);
+            var histogram = new Histogram(1, 1024, 3);
 
             // when
             histogram.record_value(115);
@@ -138,6 +138,28 @@ namespace HdrHistogram {
                 assert(percentile_for_100 < 16.666667);
                 assert(percentile_for_500 > 83.333333);
                 assert(percentile_for_500 < 83.333334);
+            } catch {
+                assert_not_reached();
+            }
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/reset", () => {
+            // given
+            var histogram = new Histogram(1, 1024, 3);
+
+            // when
+            histogram.record_value(578);
+            histogram.record_value(120);
+            histogram.record_value(157);
+
+            histogram.reset();
+
+            histogram.record_value(100);
+            histogram.record_value(150);
+            histogram.record_value(200);
+            //when
+            try {
+                assert(histogram.get_mean() == 150);
             } catch {
                 assert_not_reached();
             }

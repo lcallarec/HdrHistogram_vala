@@ -30,6 +30,10 @@ namespace HdrHistogram {
         internal int sub_bucket_count;
         internal int counts_array_length;
 
+        internal int64 start_time_stamp_msec = int64.MAX;
+        internal int64 end_time_stamp_msec = 0;
+        internal string tag = null;
+
         internal double integer_to_double_value_conversion_ratio = 1.0;
 
         internal RecordedValuesIterator recorded_values_iterator;
@@ -72,6 +76,8 @@ namespace HdrHistogram {
         internal abstract void add_to_count_at_index(int index, int64 value);
         internal abstract void increment_total_count();
         internal abstract int64 get_count_at_index(int index) throws HdrError.INDEX_OUT_OF_BOUNDS;
+        internal abstract void clear_counts();
+        internal abstract void set_normalizing_index_offset(int normalizing_index_offset);
 
         /**
          * Get the total count of all recorded values in the histogram
@@ -191,6 +197,15 @@ namespace HdrHistogram {
         private void updated_max_value(int64 value) {
             int64 internal_value = value | unit_magnitude_mask; // Max unit-equivalent value
             max_value = internal_value;
+        }
+
+        private void reset_max_value(int64 max_value) {
+            this.max_value = max_value | unit_magnitude_mask; // Max unit-equivalent value
+        }
+
+        private void reset_min_non_zero_value(int64 min_non_zero_value) {
+            int64 internal_value = min_non_zero_value & ~unit_magnitude_mask; // Min unit-equivalent value
+            this.min_non_zero_value = (min_non_zero_value == int64.MAX) ? min_non_zero_value : internal_value;
         }
 
         private void handle_record_exception(int64 count, int64 value, HdrError e) throws HdrError.INDEX_OUT_OF_BOUNDS {
@@ -553,6 +568,16 @@ namespace HdrHistogram {
             return value_from_buckets_index(bucket_index, sub_bucket_index);
         }
 
+        public void reset() {
+            clear_counts();
+            reset_max_value(0);
+            reset_min_non_zero_value(int64.MAX);
+            set_normalizing_index_offset(0);
+            start_time_stamp_msec = int64.MAX;
+            end_time_stamp_msec = 0;
+            tag = null;
+        }
+
         private int64 value_from_buckets_index(int bucket_index, int sub_bucket_index) {
             return ((int64) sub_bucket_index) << (bucket_index + unit_magnitude);
         }
@@ -570,5 +595,37 @@ namespace HdrHistogram {
             int64 internal_value = value & ~unit_magnitude_mask; // Min unit-equivalent value
             min_non_zero_value = internal_value;
         }
+
+        /**
+         * get the start time stamp [optionally] stored with this histogram
+         * @return the start time stamp [optionally] stored with this histogram
+         */
+        public int64 get_start_time_stamp() {
+            return start_time_stamp_msec;
+        }
+
+        /**
+         * Set the start time stamp value associated with this histogram to a given value.
+         * @param time_stamp_msec the value to set the time stamp to, [by convention] in msec since the epoch.
+         */
+        public void set_start_time_stamp(int64 time_stamp_msec) {
+            start_time_stamp_msec = time_stamp_msec;
+        }
+
+        /**
+         * get the end time stamp [optionally] stored with this histogram
+         * @return the end time stamp [optionally] stored with this histogram
+         */
+        public int64 get_end_time_stamp() {
+            return end_time_stamp_msec;
+        }
+
+        /**
+         * Set the end time stamp value associated with this histogram to a given value.
+         * @param timeStampMsec the value to set the time stamp to, [by convention] in msec since the epoch.
+         */
+        public void set_end_time_stamp(int64 time_stamp_msec) {
+            end_time_stamp_msec = time_stamp_msec;
+        }        
     }
 }

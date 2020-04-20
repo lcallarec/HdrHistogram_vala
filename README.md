@@ -6,7 +6,7 @@ This is still WIP, ready soon !
 
 - [x] Record value
 - [x] Auto resize
-- [ ] Reset
+- [x] Reset
 - [x] Get mean
 - [x] Get std deviation
 - [x] Get percentiles

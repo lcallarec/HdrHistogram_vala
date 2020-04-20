@@ -14,6 +14,11 @@ namespace HdrHistogram {
             return total_count;
         }
 
+        internal override void clear_counts() {
+            Arrays.Int64.fill(counts, 0, counts_array_length, 0);
+            total_count = 0;
+        }
+
         internal override int64 get_count_at_index(int index) throws HdrError.INDEX_OUT_OF_BOUNDS {
             return counts[normalize_index(index, normalizing_index_offset, counts_array_length)];
         }
@@ -50,6 +55,10 @@ namespace HdrHistogram {
                 Arrays.Int64.array_copy(counts, old_normalized_zero_index, counts, new_normalized_zero_index, length_to_copy);
                 Arrays.Int64.fill(counts, old_normalized_zero_index, new_normalized_zero_index, 0);
             }
+        }
+
+        internal override void set_normalizing_index_offset(int normalizing_index_offset) {
+            this.normalizing_index_offset = normalizing_index_offset;
         }
     }
 }
