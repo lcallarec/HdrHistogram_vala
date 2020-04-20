@@ -48,7 +48,7 @@ namespace HdrHistogram {
          *
          * @return true if the iterator has more elements.
          */
-        public override bool has_next() {
+        public bool has_next() {
             if (histogram.get_total_count() != array_total_count) {
                 //throw new HdrError.CONCURRENT_MODIFICATION_EXCEPTION("In AbstractHistogramIterator.has_next() histogram.get_total_count() != array_total_count");
                 return false;
@@ -61,7 +61,7 @@ namespace HdrHistogram {
          *
          * @return the {@link HistogramIterationValue} associated with the next element in the iteration.
          */
-        public override HistogramIterationValue next() {
+        public HistogramIterationValue next() {
             // Move through the sub buckets and buckets until we hit the next reporting level:
             while (!exhausted_sub_buckets()) {
                 count_at_this_value = histogram.get_count_at_index(current_index);
@@ -110,7 +110,7 @@ namespace HdrHistogram {
         /**
          * Not supported. Will throw an {@link UnsupportedOperationException}.
          */
-        public override void remove() {
+        public void remove() {
             assert_not_reached();
         }
 
