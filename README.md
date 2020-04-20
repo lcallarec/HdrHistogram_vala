@@ -9,14 +9,19 @@ This is still WIP, ready soon !
 - [ ] Reset
 - [x] Get mean
 - [x] Get std deviation
-- [ ] Get percentiles
+- [x] Get percentiles
+- [ ] Iterate over percentiles
+- [ ] Iterate LinearBucketValues
+- [ ] Iterate LogarithmicBucketValues
+- [ ] Iterate RecordedValues
+- [ ] Iterate AllValues
 - [ ] Java AtomicLong > Vala counterpart
 - [ ] Handle concurrent access in RecordedValuesIterator
 - [ ] Output percentile distribution
 - [ ] Corrected coordinated omissions
-- [ ] Tags
-- [ ] Add histogram
-- [ ] Substract histogram
+- [ ] Histogram tags
+- [ ] Add histograms
+- [ ] Substract histograms
 - [ ] Encode histogram
 - [ ] Decode histogram
 - [ ] Log reader

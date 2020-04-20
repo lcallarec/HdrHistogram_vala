@@ -87,6 +87,44 @@ namespace HdrHistogram {
             //when
             assert(histogram.get_std_deviation() > 70.71067811865);
             assert(histogram.get_std_deviation() < 70.71067811866);
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/get_value_at_percentile", () => {
+            // given
+            var histogram = new Histogram(1, 1000, 3);
+
+            // when
+            histogram.record_value(115);
+            histogram.record_value(198);
+            histogram.record_value(578);
+            histogram.record_value(45);
+            histogram.record_value(215);
+            histogram.record_value(320);
+             
+            //when
+            assert(histogram.get_value_at_percentile(25) == 115);
+            assert(histogram.get_value_at_percentile(90) == 578);
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/get_percentile_at_or_below_value", () => {
+            // given
+            var histogram = new Histogram(1, 1000, 3);
+
+            // when
+            histogram.record_value(115);
+            histogram.record_value(198);
+            histogram.record_value(578);
+            histogram.record_value(45);
+            histogram.record_value(215);
+            histogram.record_value(320);
+             
+            //when
+            var percentile_for_100 = histogram.get_percentile_at_or_below_value(100);
+            var percentile_for_500 = histogram.get_percentile_at_or_below_value(500);
+            assert(percentile_for_100 > 16.66666);
+            assert(percentile_for_100 < 16.666667);
+            assert(percentile_for_500 > 83.333333);
+            assert(percentile_for_500 < 83.333334);
         });        
     }
 }

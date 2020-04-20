@@ -448,6 +448,66 @@ namespace HdrHistogram {
             return std_deviation;
         }
 
+        /**
+         * Get the value at a given percentile.
+         * Returns the largest value that (100% - percentile) [+/- 1 ulp] of the overall recorded value entries
+         * in the histogram are either larger than or equivalent to. Returns 0 if no recorded values exist.
+         * <p>
+         * Note that two values are "equivalent" in this statement if
+         * {@link org.HdrHistogram.AbstractHistogram#valuesAreEquivalent} would return true.
+         *
+         * @param percentile  The percentile for which to return the associated value
+         * @return The largest value that (100% - percentile) [+/- 1 ulp] of the overall recorded value entries
+         * in the histogram are either larger than or equivalent to. Returns 0 if no recorded values exist.
+         */
+        public int64 get_value_at_percentile(double percentile) {
+            // Truncate to 0..100%, and remove 1 ulp to avoid roundoff overruns into next bucket when we
+            // subsequently round up to the nearest integer:
+            double requested_percentile =
+                    double.min(double.max(Math.nextafter(percentile, -double.INFINITY), 0.0), 100.0);
+            // derive the count at the requested percentile. We round up to nearest integer to ensure that the
+            // largest value that the requested percentile of overall recorded values is <= is actually included.
+            double fp_count_at_percentile = (requested_percentile * get_total_count()) / 100.0;
+            int64 count_at_percentile = (int64)(Math.ceil(fp_count_at_percentile)); // round up
+
+            count_at_percentile = int64.max(count_at_percentile, 1); // Make sure we at least reach the first recorded entry
+            int64 total_to_current_index = 0;
+            for (int i = 0; i < counts_array_length; i++) {
+                total_to_current_index += get_count_at_index(i);
+                if (total_to_current_index >= count_at_percentile) {
+                    int64 value_at_index = value_from_index(i);
+                    return (percentile == 0.0) ?
+                            lowest_equivalent_value(value_at_index) :
+                            highest_equivalent_value(value_at_index);
+                }
+            }
+            return 0;
+        }
+
+        /**
+         * Get the percentile at a given value.
+         * The percentile returned is the percentile of values recorded in the histogram that are smaller
+         * than or equivalent to the given value.
+         * <p>
+         * Note that two values are "equivalent" in this statement if
+         * {@link org.HdrHistogram.AbstractHistogram#valuesAreEquivalent} would return true.
+         *
+         * @param value The value for which to return the associated percentile
+         * @return The percentile of values recorded in the histogram that are smaller than or equivalent
+         * to the given value.
+         */
+        public double get_percentile_at_or_below_value(int64 value) {
+            if (get_total_count() == 0) {
+                return 100.0;
+            }
+            int target_index = int.min(counts_array_index(value), (counts_array_length - 1));
+            int64 total_to_current_index = 0;
+            for (int i = 0; i <= target_index; i++) {
+                total_to_current_index += get_count_at_index(i);
+            }
+            return (100.0 * total_to_current_index) / get_total_count();
+        }
+
         internal int64 value_from_index(int index) {
             int bucket_index = (index >> sub_bucket_half_count_magnitude) - 1;
             int sub_bucket_index = (index & (sub_bucket_half_count - 1)) + sub_bucket_half_count;
