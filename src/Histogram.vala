@@ -14,7 +14,7 @@ namespace HdrHistogram {
             return total_count;
         }
 
-        internal override int64 get_count_at_index(int index) {
+        internal override int64 get_count_at_index(int index) throws HdrError.INDEX_OUT_OF_BOUNDS {
             return counts[normalize_index(index, normalizing_index_offset, counts_array_length)];
         }
 

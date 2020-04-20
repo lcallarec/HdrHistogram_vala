@@ -10,13 +10,13 @@ This is still WIP, ready soon !
 - [x] Get mean
 - [x] Get std deviation
 - [x] Get percentiles
+- [ ] Java AtomicLong > Vala counterpart
+- [*] Handle concurrent accesses in RecordedValuesIterator
 - [ ] Iterate over percentiles
 - [ ] Iterate LinearBucketValues
 - [ ] Iterate LogarithmicBucketValues
 - [ ] Iterate RecordedValues
 - [ ] Iterate AllValues
-- [ ] Java AtomicLong > Vala counterpart
-- [ ] Handle concurrent access in RecordedValuesIterator
 - [ ] Output percentile distribution
 - [ ] Corrected coordinated omissions
 - [ ] Histogram tags

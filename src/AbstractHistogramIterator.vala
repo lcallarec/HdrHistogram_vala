@@ -61,7 +61,7 @@ namespace HdrHistogram {
          *
          * @return the {@link HistogramIterationValue} associated with the next element in the iteration.
          */
-        public HistogramIterationValue next() {
+        public HistogramIterationValue next() throws HdrError {
             // Move through the sub buckets and buckets until we hit the next reporting level:
             while (!exhausted_sub_buckets()) {
                 count_at_this_value = histogram.get_count_at_index(current_index);
@@ -90,21 +90,21 @@ namespace HdrHistogram {
                     total_count_to_prev_index = total_count_to_current_index;
                     // move the next iteration level forward:
                     increment_iteration_level();
-                    //  if (histogram.get_total_count() != array_total_count) {
-                    //      throw new HdrError.CONCURRENT_MODIFICATION_EXCEPTION("In AbstractHistogramIterator.next() histogram.get_total_count() != array_total_count");
-                    //  }
+                    if (histogram.get_total_count() != array_total_count) {
+                        throw new HdrError.CONCURRENT_MODIFICATION_EXCEPTION("In AbstractHistogramIterator.next() histogram.get_total_count() != array_total_count");
+                    }
                     return current_iteration_value;
                 }
                 increment_sub_bucket();
             }
-            assert_not_reached();
+
             // Should not reach here. But possible for concurrent modification or overflowed histograms
             // under certain conditions
-            //  if ((histogram.get_total_count() != array_total_count) ||
-            //      (total_count_to_current_index > array_total_count)) {
-            //      throw new HdrError.CONCURRENT_MODIFICATION_EXCEPTION("In AbstractHistogramIterator.has_next() histogram.get_total_count() != array_total_count");
-            //  }
-            //  throw new HdrError.NO_SUCH_ELEMENT("In AbstractHistogramIterator.next()");
+            if ((histogram.get_total_count() != array_total_count) ||
+                (total_count_to_current_index > array_total_count)) {
+                throw new HdrError.CONCURRENT_MODIFICATION_EXCEPTION("In AbstractHistogramIterator.has_next() histogram.get_total_count() != array_total_count");
+            }
+            throw new HdrError.NO_SUCH_ELEMENT("In AbstractHistogramIterator.next()");
         }
 
         /**
@@ -119,14 +119,10 @@ namespace HdrHistogram {
         /**
          * @return true if the current position's data should be emitted by the iterator
          */
-        internal abstract bool reached_iteration_level();
+        internal abstract bool reached_iteration_level() throws HdrError;
 
         internal double get_percentile_iterated_to() {
             return (100.0 * (double) total_count_to_current_index) / array_total_count;
-        }
-
-        internal double get_percentile_iterated_from() {
-            return (100.0 * (double) total_count_to_prev_index) / array_total_count;
         }
 
         internal int64 get_value_iterated_to() {

@@ -70,7 +70,11 @@ namespace HdrHistogram {
  
             
             //when
-            assert(histogram.get_mean() == 150);
+            try {
+                assert(histogram.get_mean() == 150);
+            } catch {
+                assert_not_reached();
+            }
         });
 
         Test.add_func("/HdrHistogram/Histogram/get_std_deviation", () => {
@@ -85,8 +89,12 @@ namespace HdrHistogram {
             histogram.record_value(300);
              
             //when
-            assert(histogram.get_std_deviation() > 70.71067811865);
-            assert(histogram.get_std_deviation() < 70.71067811866);
+            try {
+                assert(histogram.get_std_deviation() > 70.71067811865);
+                assert(histogram.get_std_deviation() < 70.71067811866);
+            } catch {
+                assert_not_reached();
+            }
         });
 
         Test.add_func("/HdrHistogram/Histogram/get_value_at_percentile", () => {
@@ -102,8 +110,12 @@ namespace HdrHistogram {
             histogram.record_value(320);
              
             //when
-            assert(histogram.get_value_at_percentile(25) == 115);
-            assert(histogram.get_value_at_percentile(90) == 578);
+            try {
+                assert(histogram.get_value_at_percentile(25) == 115);
+                assert(histogram.get_value_at_percentile(90) == 578);
+            } catch {
+                assert_not_reached();
+            }            
         });
 
         Test.add_func("/HdrHistogram/Histogram/get_percentile_at_or_below_value", () => {
@@ -119,12 +131,16 @@ namespace HdrHistogram {
             histogram.record_value(320);
              
             //when
-            var percentile_for_100 = histogram.get_percentile_at_or_below_value(100);
-            var percentile_for_500 = histogram.get_percentile_at_or_below_value(500);
-            assert(percentile_for_100 > 16.66666);
-            assert(percentile_for_100 < 16.666667);
-            assert(percentile_for_500 > 83.333333);
-            assert(percentile_for_500 < 83.333334);
+            try {
+                var percentile_for_100 = histogram.get_percentile_at_or_below_value(100);
+                var percentile_for_500 = histogram.get_percentile_at_or_below_value(500);
+                assert(percentile_for_100 > 16.66666);
+                assert(percentile_for_100 < 16.666667);
+                assert(percentile_for_500 > 83.333333);
+                assert(percentile_for_500 < 83.333334);
+            } catch {
+                assert_not_reached();
+            }
         });        
     }
 }
