@@ -8,6 +8,10 @@ gobject = dependency('gobject-2.0')
 
 vala_args = []
 
+if get_option('debug') == true
+  vala_args += ['--ccode', '--debug']
+endif
+
 deps = [libm, glib, gobject]
 
 subdir('src')
