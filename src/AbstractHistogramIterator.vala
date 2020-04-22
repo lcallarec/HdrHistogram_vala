@@ -48,7 +48,7 @@ namespace HdrHistogram {
          *
          * @return true if the iterator has more elements.
          */
-        public bool has_next() {
+        public virtual bool has_next() {
             if (histogram.get_total_count() != array_total_count) {
                 //throw new HdrError.CONCURRENT_MODIFICATION_EXCEPTION("In AbstractHistogramIterator.has_next() histogram.get_total_count() != array_total_count");
                 return false;
