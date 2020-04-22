@@ -216,5 +216,118 @@ namespace HdrHistogram {
                 assert_not_reached();
             }
         });
+
+        Test.add_func("/HdrHistogram/Histogram/output_percentile_distribution", () => {
+            // given
+            var histogram = new Histogram(1, 1024, 3);
+
+            // when
+            histogram.record_value(25);
+            histogram.record_value(50);
+            histogram.record_value(75);
+
+            //then
+            FileStream? output = FileStream.open("output_percentile_distribution", "w");
+            if (output != null) {
+                histogram.output_percentile_distribution(output, 5, 1);
+                output = null;
+            } else {
+                assert_not_reached();
+            }
+
+            GLib.File file = GLib.File.new_for_path("output_percentile_distribution");
+            FileInputStream reader = file.read();
+            DataInputStream data_reader = new DataInputStream(reader);
+
+            string output_percentile_distribution = "";
+            while(true) {
+                var line = data_reader.read_line();
+                if (line == null) {
+                    break;
+                }
+                output_percentile_distribution += line + "\n";
+            }
+
+            try {
+                file.delete();
+            } catch {
+                assert_not_reached();
+            }
+
+            string expected_output = """       Value     Percentile TotalCount 1/(1-Percentile)
+
+      25.000 0.000000000000          1           1.00
+      25.000 0.100000000000          1           1.11
+      25.000 0.200000000000          1           1.25
+      25.000 0.300000000000          1           1.43
+      50.000 0.400000000000          2           1.67
+      50.000 0.500000000000          2           2.00
+      50.000 0.550000000000          2           2.22
+      50.000 0.600000000000          2           2.50
+      50.000 0.650000000000          2           2.86
+      75.000 0.700000000000          3           3.33
+      75.000 1.000000000000          3
+#[Mean    =       50.000, StdDeviation   =       20.412]
+#[Max     =       75.000, Total count    =            3]
+#[Buckets =            1, SubBuckets     =         2048]
+""";
+
+           assert(output_percentile_distribution == expected_output);
+
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/output_percentile_distribution#csv", () => {
+            // given
+            var histogram = new Histogram(1, 1024, 3);
+
+            // when
+            histogram.record_value(25);
+            histogram.record_value(50);
+            histogram.record_value(75);
+
+            //then
+            FileStream? output = FileStream.open("output_percentile_distribution", "w");
+            if (output != null) {
+                histogram.output_percentile_distribution(output, 5, 1, true);
+                output = null;
+            } else {
+                assert_not_reached();
+            }
+
+            GLib.File file = GLib.File.new_for_path("output_percentile_distribution");
+            FileInputStream reader = file.read();
+            DataInputStream data_reader = new DataInputStream(reader);
+
+            string output_percentile_distribution = "";
+            while(true) {
+                var line = data_reader.read_line();
+                if (line == null) {
+                    break;
+                }
+                output_percentile_distribution += line + "\n";
+            }
+
+            try {
+                file.delete();
+            } catch {
+                assert_not_reached();
+            }
+
+            string expected_output = """"Value","Percentile","TotalCount","1/(1-Percentile)"
+25.000,0.000000000000,1,1.00
+25.000,0.100000000000,1,1.11
+25.000,0.200000000000,1,1.25
+25.000,0.300000000000,1,1.43
+50.000,0.400000000000,2,1.67
+50.000,0.500000000000,2,2.00
+50.000,0.550000000000,2,2.22
+50.000,0.600000000000,2,2.50
+50.000,0.650000000000,2,2.86
+75.000,0.700000000000,3,3.33
+75.000,1.000000000000,3,Infinity
+""";
+
+           assert(output_percentile_distribution == expected_output);
+        });
     }
 }

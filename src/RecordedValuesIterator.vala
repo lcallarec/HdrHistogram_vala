@@ -34,5 +34,9 @@ namespace HdrHistogram {
             int64 current_count = histogram.get_count_at_index(current_index);
             return (current_count != 0) && (visited_index != current_index);
         }
+
+        public override double get_percentile_iterated_to() {
+            return (100.0 * (double) total_count_to_current_index) / array_total_count;
+        }
     }
 }

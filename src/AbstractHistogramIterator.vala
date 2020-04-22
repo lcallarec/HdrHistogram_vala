@@ -61,7 +61,7 @@ namespace HdrHistogram {
          *
          * @return the {@link HistogramIterationValue} associated with the next element in the iteration.
          */
-        public HistogramIterationValue next() throws HdrError {
+        public virtual HistogramIterationValue next() throws HdrError {
             // Move through the sub buckets and buckets until we hit the next reporting level:
             while (!exhausted_sub_buckets()) {
                 count_at_this_value = histogram.get_count_at_index(current_index);
@@ -84,7 +84,7 @@ namespace HdrHistogram {
                         get_percentile_iterated_to(),
                         integer_to_double_value_conversion_ratio
                     );
-
+                    
                     prev_value_iterated_to = value_iterated_to;
                     
                     total_count_to_prev_index = total_count_to_current_index;
@@ -121,7 +121,7 @@ namespace HdrHistogram {
          */
         internal abstract bool reached_iteration_level() throws HdrError;
 
-        internal double get_percentile_iterated_to() {
+        public virtual double get_percentile_iterated_to() {
             return (100.0 * (double) total_count_to_current_index) / array_total_count;
         }
 

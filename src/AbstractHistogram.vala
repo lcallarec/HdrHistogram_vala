@@ -36,6 +36,7 @@ namespace HdrHistogram {
 
         internal double integer_to_double_value_conversion_ratio = 1.0;
 
+        internal PercentileIterator percentile_iterator;
         internal RecordedValuesIterator recorded_values_iterator;
 
         internal double get_integer_to_double_value_conversion_ratio() {
@@ -145,6 +146,7 @@ namespace HdrHistogram {
 
             establish_size(highest_trackable_value);
 
+            percentile_iterator = new PercentileIterator(this, 1);
             recorded_values_iterator = new RecordedValuesIterator(this);            
         }
 
@@ -626,6 +628,103 @@ namespace HdrHistogram {
          */
         public void set_end_time_stamp(int64 time_stamp_msec) {
             end_time_stamp_msec = time_stamp_msec;
-        }        
+        }
+
+         /**
+         * Produce textual representation of the value distribution of histogram data by percentile. The distribution is
+         * output with exponentially increasing resolution, with each exponentially decreasing half-distance containing
+         * <i>dumpTicksPerHalf</i> percentile reporting tick points.
+         *
+         * @param print_stream    Stream into which the distribution will be output
+         * <p>
+         * @param percentile_ticks_per_half_distance  The number of reporting points per exponentially decreasing half-distance
+         * <p>
+         * @param output_value_unit_scaling_ratio    The scaling factor by which to divide histogram recorded values units in
+         *                                     output
+         * @param use_csv_format  Output in CSV format if true. Otherwise use plain text form.
+         */
+        public void output_percentile_distribution(FileStream print_stream, int percentile_ticks_per_half_distance = 5, double output_value_unit_scaling_ratio = 1, bool use_csv_format = false) {
+
+            if (use_csv_format) {
+                print_stream.printf("\"Value\",\"Percentile\",\"TotalCount\",\"1/(1-Percentile)\"\n");
+            } else {
+                print_stream.printf("%12s %14s %10s %14s\n\n", "Value", "Percentile", "TotalCount", "1/(1-Percentile)");
+            }
+
+            PercentileIterator iterator = percentile_iterator;
+            iterator.reset(percentile_ticks_per_half_distance);
+
+            string percentile_format_string;
+            string last_linepercentile_format_string;
+            if (use_csv_format) {
+                percentile_format_string = "%." + number_of_significant_value_digits.to_string() + "f,%.12f,%d,%.2f\n";
+                last_linepercentile_format_string = "%." + number_of_significant_value_digits.to_string() + "f,%.12f,%d,Infinity\n";
+            } else {
+                percentile_format_string = "%12." + number_of_significant_value_digits.to_string() + "f %2.12f %10d %14.2f\n";
+                last_linepercentile_format_string = "%12." + number_of_significant_value_digits.to_string() + "f %2.12f %10d\n";
+            }
+
+            while (iterator.has_next()) {
+                HistogramIterationValue iteration_value = iterator.next();
+                if (iteration_value.get_percentile_level_iterated_to() != 100.0D) {
+                    print_stream.printf(percentile_format_string,
+                            iteration_value.get_value_iterated_to() / output_value_unit_scaling_ratio,
+                            iteration_value.get_percentile_level_iterated_to()/100.0D,
+                            iteration_value.get_total_count_to_this_value(),
+                            1/(1.0D - (iteration_value.get_percentile_level_iterated_to()/100.0D)) );
+                } else {
+                    print_stream.printf(last_linepercentile_format_string,
+                            iteration_value.get_value_iterated_to() / output_value_unit_scaling_ratio,
+                            iteration_value.get_percentile_level_iterated_to()/100.0D,
+                            iteration_value.get_total_count_to_this_value());
+                }
+            }
+
+            if (!use_csv_format) {
+                // Calculate and output mean and std. deviation.
+                // Note: mean/std. deviation numbers are very often completely irrelevant when
+                // data is extremely non-normal in distribution (e.g. in cases of strong multi-modal
+                // response time distribution associated with GC pauses). However, reporting these numbers
+                // can be very useful for contrasting with the detailed percentile distribution
+                // reported by outputPercentileDistribution(). It is not at all surprising to find
+                // percentile distributions where results fall many tens or even hundreds of standard
+                // deviations away from the mean - such results simply indicate that the data sampled
+                // exhibits a very non-normal distribution, highlighting situations for which the std.
+                // deviation metric is a useless indicator.
+                //
+
+                double mean =  get_mean() / output_value_unit_scaling_ratio;
+                double std_deviation = get_std_deviation() / output_value_unit_scaling_ratio;
+                print_stream.printf("#[Mean    = %12." + number_of_significant_value_digits.to_string() + "f, StdDeviation   = %12." +
+                                number_of_significant_value_digits.to_string() +"f]\n",
+                        mean, std_deviation);
+                print_stream.printf(
+                        "#[Max     = %12." + number_of_significant_value_digits.to_string() + "f, Total count    = %12d]\n",
+                        get_max_value() / output_value_unit_scaling_ratio, get_total_count());
+                print_stream.printf("#[Buckets = %12d, SubBuckets     = %12d]\n",
+                        bucket_count, sub_bucket_count);
+            }
+        }
+    }
+
+     /**
+     * An {@link java.lang.Iterable}{@literal <}{@link HistogramIterationValue}{@literal >} through
+     * the histogram using a {@link PercentileIterator}
+     */
+    public class Percentiles : Iterable<HistogramIterationValue> {
+        internal AbstractHistogram histogram;
+        internal int percentile_ticks_per_half_distance;
+
+        private Percentiles(AbstractHistogram histogram, int percentile_ticks_per_half_distance) {
+            this.histogram = histogram;
+            this.percentile_ticks_per_half_distance = percentile_ticks_per_half_distance;
+        }
+
+        /**
+         * @return A {@link PercentileIterator}{@literal <}{@link HistogramIterationValue}{@literal >}
+         */
+         public override Iterator<HistogramIterationValue> iterator() {
+            return new PercentileIterator(histogram, percentile_ticks_per_half_distance);
+        }
     }
 }
