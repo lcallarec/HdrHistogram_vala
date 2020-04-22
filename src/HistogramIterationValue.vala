@@ -73,14 +73,15 @@ namespace HdrHistogram {
         }
 
         public string to_string() {
-            return  @"value_iterated_to: $value_iterated_to ,
-                      prev_value_iterated_to: $value_iterated_from ,
-                    count_atvalue_iterated_to: $count_atvalue_iterated_to ,
-                    count_added_in_this_iteration_step: $count_added_in_this_iteration_step ,
-                    total_count_to_this_value: $total_count_to_this_value ,
-                    total_value_to_this_value: $total_value_to_this_value ,
-                    percentile: $percentile ,
-                    percentile_level_iterated_to: $percentile_level_iterated_to";
+            return  @"
+                value_iterated_to:                  $value_iterated_to \n,
+                prev_value_iterated_to:             $value_iterated_from \n,
+                count_atvalue_iterated_to:          $count_atvalue_iterated_to \n,
+                count_added_in_this_iteration_step: $count_added_in_this_iteration_step \n,
+                total_count_to_this_value:          $total_count_to_this_value \n,
+                total_value_to_this_value:          $total_value_to_this_value \n,
+                percentile:                         $percentile \n,
+                percentile_level_iterated_to:       $percentile_level_iterated_to \n";
         }
 
         public int64 get_value_iterated_to() {
