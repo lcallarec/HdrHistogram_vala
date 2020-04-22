@@ -739,7 +739,7 @@ namespace HdrHistogram {
         /**
          * @return A {@link PercentileIterator}{@literal <}{@link HistogramIterationValue}{@literal >}
          */
-         public override Iterator<HistogramIterationValue> iterator() {
+         public Iterator<HistogramIterationValue> iterator() {
             return new PercentileIterator(histogram, percentile_ticks_per_half_distance);
         }
     }
