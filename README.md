@@ -13,7 +13,6 @@ This is still WIP, ready soon !
 - [x] Output percentile distribution
 - [ ] Java AtomicLong > Vala counterpart
 - [x] Handle concurrent accesses in RecordedValuesIterator
-- [ ] Histogram tags
 - [ ] Encode histogram
 - [ ] Decode histogram
 - [ ] Corrected coordinated omissions

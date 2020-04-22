@@ -630,6 +630,22 @@ namespace HdrHistogram {
             end_time_stamp_msec = time_stamp_msec;
         }
 
+        /**
+         * get the tag string [optionally] associated with this histogram
+         * @return tag string [optionally] associated with this histogram
+         */
+        public string get_tag() {
+            return tag;
+        }
+
+        /**
+         * Set the tag string associated with this histogram
+         * @param tag the tag string to assciate with this histogram
+         */
+        public void set_tag(string tag) {
+            this.tag = tag;
+        }
+        
          /**
          * Produce textual representation of the value distribution of histogram data by percentile. The distribution is
          * output with exponentially increasing resolution, with each exponentially decreasing half-distance containing
