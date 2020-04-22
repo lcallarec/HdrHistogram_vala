@@ -219,12 +219,13 @@ namespace HdrHistogram {
 
         Test.add_func("/HdrHistogram/Histogram/output_percentile_distribution", () => {
             // given
-            var histogram = new Histogram(1, 1024, 3);
+            var histogram = new Histogram(1, 3600000000000, 3);
 
             // when
-            histogram.record_value(25);
-            histogram.record_value(50);
-            histogram.record_value(75);
+            histogram.record_value(100);
+            histogram.record_value(200);
+            histogram.record_value(250);
+            histogram.record_value(600);
 
             //then
             FileStream? output = FileStream.open("output_percentile_distribution", "w");
@@ -256,34 +257,36 @@ namespace HdrHistogram {
 
             string expected_output = """       Value     Percentile TotalCount 1/(1-Percentile)
 
-      25.000 0.000000000000          1           1.00
-      25.000 0.100000000000          1           1.11
-      25.000 0.200000000000          1           1.25
-      25.000 0.300000000000          1           1.43
-      50.000 0.400000000000          2           1.67
-      50.000 0.500000000000          2           2.00
-      50.000 0.550000000000          2           2.22
-      50.000 0.600000000000          2           2.50
-      50.000 0.650000000000          2           2.86
-      75.000 0.700000000000          3           3.33
-      75.000 1.000000000000          3
-#[Mean    =       50.000, StdDeviation   =       20.412]
-#[Max     =       75.000, Total count    =            3]
-#[Buckets =            1, SubBuckets     =         2048]
+     100.000 0.000000000000          1           1.00
+     100.000 0.100000000000          1           1.11
+     100.000 0.200000000000          1           1.25
+     200.000 0.300000000000          2           1.43
+     200.000 0.400000000000          2           1.67
+     200.000 0.500000000000          2           2.00
+     250.000 0.550000000000          3           2.22
+     250.000 0.600000000000          3           2.50
+     250.000 0.650000000000          3           2.86
+     250.000 0.700000000000          3           3.33
+     250.000 0.750000000000          3           4.00
+     600.000 0.775000000000          4           4.44
+     600.000 1.000000000000          4
+#[Mean    =      287.500, StdDeviation   =      188.331]
+#[Max     =      600.000, Total count    =            4]
+#[Buckets =           32, SubBuckets     =         2048]
 """;
-
            assert(output_percentile_distribution == expected_output);
 
         });
 
         Test.add_func("/HdrHistogram/Histogram/output_percentile_distribution#csv", () => {
             // given
-            var histogram = new Histogram(1, 1024, 3);
+            var histogram = new Histogram(1, 3600000000000, 3);
 
             // when
-            histogram.record_value(25);
-            histogram.record_value(50);
-            histogram.record_value(75);
+            histogram.record_value(100);
+            histogram.record_value(200);
+            histogram.record_value(250);
+            histogram.record_value(600);
 
             //then
             FileStream? output = FileStream.open("output_percentile_distribution", "w");
@@ -314,17 +317,19 @@ namespace HdrHistogram {
             }
 
             string expected_output = """"Value","Percentile","TotalCount","1/(1-Percentile)"
-25.000,0.000000000000,1,1.00
-25.000,0.100000000000,1,1.11
-25.000,0.200000000000,1,1.25
-25.000,0.300000000000,1,1.43
-50.000,0.400000000000,2,1.67
-50.000,0.500000000000,2,2.00
-50.000,0.550000000000,2,2.22
-50.000,0.600000000000,2,2.50
-50.000,0.650000000000,2,2.86
-75.000,0.700000000000,3,3.33
-75.000,1.000000000000,3,Infinity
+100.000,0.000000000000,1,1.00
+100.000,0.100000000000,1,1.11
+100.000,0.200000000000,1,1.25
+200.000,0.300000000000,2,1.43
+200.000,0.400000000000,2,1.67
+200.000,0.500000000000,2,2.00
+250.000,0.550000000000,3,2.22
+250.000,0.600000000000,3,2.50
+250.000,0.650000000000,3,2.86
+250.000,0.700000000000,3,3.33
+250.000,0.750000000000,3,4.00
+600.000,0.775000000000,4,4.44
+600.000,1.000000000000,4,Infinity
 """;
 
            assert(output_percentile_distribution == expected_output);
