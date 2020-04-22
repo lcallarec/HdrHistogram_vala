@@ -294,11 +294,11 @@ namespace HdrHistogram {
             return buckets_needed;
         }
 
-        protected int get_bucket_index(int64 value) {
+        internal int get_bucket_index(int64 value) {
              return this.leading_zero_count_base - Int64.number_of_leading_zeros(value | sub_bucket_mask);
         }
 
-        protected int get_sub_bucket_index(int64 value, int bucket_index) {
+        internal int get_sub_bucket_index(int64 value, int bucket_index) {
              return (int) (uint) (value >> (bucket_index + unit_magnitude));
         }
 
