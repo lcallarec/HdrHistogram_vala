@@ -25,3 +25,13 @@ namespace HdrHistogram.Arrays.Int64 {
         }
     }
 }
+
+namespace HdrHistogram.Arrays.Bytes { 
+    internal void concat(ref uint8[] array1, uint8[] array2) {
+        var original_len = array1.length;
+        array1.resize(array1.length + array2.length);
+        for (var i = 0; i < array2.length; i++) {
+            array1[original_len + i] = array2[i];
+        }
+    }
+}

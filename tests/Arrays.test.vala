@@ -82,5 +82,22 @@ namespace HdrHistogram {
                 assert(destination_array[i] == expected[i]);
             }
         });
+
+        Test.add_func("/HdrHistogram/Arrays/Bytes/concat", () => {
+            //given
+            uint8[] array1 = {0, 1, 2};
+            uint8[] array2 = {2, 3, 4}; 
+
+            //when
+            Arrays.Bytes.concat(ref array1, array2);
+
+            //then
+            int64[] expected = {0, 1, 2, 2, 3, 4};
+
+            assert(array1.length == 6);
+            for(var i = 0; i < array1.length; i++) {
+                assert(array1[i] == expected[i]);
+            }
+        });
     }
 }
