@@ -6,6 +6,8 @@ namespace HdrHistogram {
         register_int64_arrays();
         register_int64();
         register_histogram();
+        register_bytes();
+        register_zlib();
         Test.run();
     }
 }
