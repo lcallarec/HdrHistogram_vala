@@ -9,6 +9,7 @@ namespace HdrHistogram {
             var copy = Arrays.Int64.copy(original_array, 3);
 
             //then
+            assert(original_array.length == 3);
             assert(copy.length == original_array.length);
             for (var i = 0; i < original_array.length; i++) {
                 assert(original_array[i] == copy[i]);
@@ -24,6 +25,7 @@ namespace HdrHistogram {
             var copy = Arrays.Int64.copy(original_array, copy_len);
 
             //then
+            assert(original_array.length == 3);
             assert(copy_len == copy.length);
             for (var i = 0; i < copy_len; i++) {
                 assert(original_array[i] == copy[i]);
@@ -39,8 +41,9 @@ namespace HdrHistogram {
             var copy = Arrays.Int64.copy(original_array, copy_len);
 
             //then
+            assert(original_array.length == 3);
             assert(copy_len == copy.length);
-            for (var i = 0; i <= original_array.length; i++) {
+            for (var i = 0; i < original_array.length; i++) {
                 assert(original_array[i] == copy[i]);
             }
             assert(copy[3] == 0);
