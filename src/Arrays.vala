@@ -7,8 +7,9 @@ namespace HdrHistogram.Arrays.Int64 {
         if (new_length <= array.length) {
             return array[0:new_length];
         }
-        array.resize(new_length);
-        return array;
+        var new_array = array;
+        new_array.resize(new_length);
+        return new_array;
     }
 
     //Replacement for java Arrays.fill
