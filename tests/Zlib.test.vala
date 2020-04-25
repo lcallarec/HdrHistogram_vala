@@ -32,7 +32,7 @@ namespace HdrHistogram {
             //expect
             //  stdout.printf("encoded_compressed = %s\n", encoded_compressed);
             //  stdout.flush();
-
+            stdout.printf("(string) decompressed %s\n", (string) decompressed);
             assert("ABCD" == (string) decompressed);
         });
     }

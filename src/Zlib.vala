@@ -34,7 +34,7 @@ namespace HdrHistogram.Zlib {
 
         uint8[] output = {};
         while(true) {
-            var bytes = distream.read_bytes(1024);
+            var bytes = distream.read_bytes(1);
             if (bytes.get_size() == 0) break;
             Arrays.Bytes.concat(ref output, bytes.get_data());
         }
