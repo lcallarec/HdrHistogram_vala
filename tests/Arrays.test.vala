@@ -102,5 +102,18 @@ namespace HdrHistogram {
                 assert(array1[i] == expected[i]);
             }
         });
+
+        Test.add_func("/HdrHistogram/Arrays/Bytes/reverse", () => {
+            //given
+            uint8[] array1 = {0, 1, 2};
+
+            //when
+            var result = Arrays.Bytes.reverse(array1);
+
+            //then
+            int64[] expected = {2, 1, 0};
+
+            assert(result.length == 3);
+        });
     }
 }

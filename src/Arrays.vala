@@ -35,4 +35,13 @@ namespace HdrHistogram.Arrays.Bytes {
             array1[original_len + i] = array2[i];
         }
     }
+
+    internal uint8[] reverse(uint8[] array1) {
+        uint8[] reversed = {};
+        for (var i = array1.length - 1; i >= 0; i--) {
+            reversed += array1[i];
+        }
+
+        return reversed;
+    }
 }
