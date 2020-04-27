@@ -78,6 +78,7 @@ namespace HdrHistogram {
         internal abstract void increment_total_count();
         internal abstract int64 get_count_at_index(int index) throws HdrError.INDEX_OUT_OF_BOUNDS;
         internal abstract void clear_counts();
+        internal abstract int get_normalizing_index_offset();
         internal abstract void set_normalizing_index_offset(int normalizing_index_offset);
 
         /**
@@ -142,7 +143,7 @@ namespace HdrHistogram {
 
             leading_zero_count_base = 64 - unit_magnitude - sub_bucket_count_magnitude;
             
-            sub_bucket_mask = ((long)sub_bucket_count - 1) << unit_magnitude;
+            sub_bucket_mask = ((int64)sub_bucket_count - 1) << unit_magnitude;
 
             establish_size(highest_trackable_value);
 
@@ -192,9 +193,9 @@ namespace HdrHistogram {
         }
 
         /**
-         * Set internally tracked maxValue to new value if new value is greater than current one.
+         * Set internally tracked max_value to new value if new value is greater than current one.
          * May be overridden by subclasses for synchronization or atomicity purposes.
-         * @param value new maxValue to set
+         * @param value new max_value to set
          */
         private void updated_max_value(int64 value) {
             int64 internal_value = value | unit_magnitude_mask; // Max unit-equivalent value
@@ -314,7 +315,7 @@ namespace HdrHistogram {
                 //throw new ArrayIndexOutOfBoundsException("index out of covered value range");
             }
             int normalized_index = index - normalizing_index_offset;
-            // The following is the same as an unsigned remainder operation, as long as no double wrapping happens
+            // The following is the same as an unsigned remainder operation, as int64 as no double wrapping happens
             // (which shouldn't happen, as normalization is never supposed to wrap, since it would have overflowed
             // or underflowed before it did). This (the + and - tests) seems to be faster than a % op with a
             // correcting if < 0...:
@@ -721,6 +722,137 @@ namespace HdrHistogram {
                         bucket_count, sub_bucket_count);
             }
         }
+        private const int ENCODING_HEADER_SIZE = 40;
+        private const int V2EncodingCookieBase = 0x1c849303;
+        private  const int V2CompressedEncodingCookieBase = 0x1c849304;
+        private const int V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes per word
+
+        private int get_encoding_cookie() {
+            return V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
+        }
+
+        private int get_compressed_encoding_cookie() {
+            return V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
+        }
+
+        public ByteArray encode_into_byte_buffer(ByteArray buffer = new ByteArray()) {
+            int64 max_value = get_max_value();
+            int relevant_length = counts_array_index(max_value) + 1;
+            
+            BytesConverter converter = new BytesConverter(ByteOrder.BIG_ENDIAN);
+
+            Bytes cookie = converter.int_to_bytes(get_encoding_cookie());
+            Bytes index_offset = converter.int_to_bytes(get_normalizing_index_offset());
+            Bytes digits = converter.int_to_bytes(number_of_significant_value_digits);
+            Bytes lowest = converter.int64_to_bytes(lowest_discernible_value);
+            Bytes highest = converter.int64_to_bytes(highest_trackable_value);
+            Bytes ratio = converter.double_to_bytes(get_integer_to_double_value_conversion_ratio());            
+
+            int needed_capacity = get_needed_byte_buffer_capacity();
+            
+            var payload_buffer = new ByteArray();
+            fill_bytes_from_counts_array(payload_buffer);
+
+            var payload_size = (int) payload_buffer.len;
+            
+            buffer.append(cookie.get_data());
+            buffer.append(converter.int_to_bytes(payload_size).get_data());
+            buffer.append(index_offset.get_data());
+            buffer.append(digits.get_data());
+            buffer.append(lowest.get_data());
+            buffer.append(highest.get_data());
+            buffer.append(ratio.get_data());
+            
+            buffer.append(payload_buffer.data);
+
+            return buffer;
+        }
+
+        /**
+         * Encode this histogram in compressed form into a byte array
+         * @param target_buffer The buffer to encode into
+         * @param compression_level Compression level -1 default, 0-9
+         * @return ByteArray the buffer
+         */
+        public ByteArray encode_into_compressed_byte_buffer(int compression_level = -1) {
+            int needed_capacity = get_needed_byte_buffer_capacity();
+
+            var uncompressed_byte_array = encode_into_byte_buffer(new ByteArray.sized(needed_capacity));
+    
+            var converter = new BytesConverter(ByteOrder.BIG_ENDIAN);
+            
+            var compressed_array = Zlib.compress(uncompressed_byte_array.data); 
+
+            var target_buffer = new ByteArray();
+
+            Bytes cookie = converter.int_to_bytes(get_compressed_encoding_cookie());
+            
+            target_buffer.append(cookie.get_data());
+            target_buffer.append(converter.int_to_bytes(compressed_array.length).get_data());
+            target_buffer.append(compressed_array);
+
+            return target_buffer;
+        }
+
+        public string encode() {
+            ByteArray buffer = encode_into_byte_buffer();
+            return Base64.encode((uchar[]) buffer.data);
+        }
+
+        public string encode_compressed(int compression_level = -1) {
+            ByteArray buffer = encode_into_compressed_byte_buffer(compression_level);
+            return Base64.encode((uchar[]) buffer.data);
+        }
+
+        internal void fill_bytes_from_counts_array(ByteArray buffer) {
+            int counts_limit = counts_array_index(max_value) + 1;
+            int src_index = 0;
+            
+            var encoder = new ZigZagEncoder(buffer);
+
+            while (src_index < counts_limit) {
+                // V2 encoding format uses a ZigZag LEB128-64b9B encoded int64. Positive values are counts,
+                // while negative values indicate a repeat zero counts.
+                int64 count = get_count_at_index(src_index++);
+                if (count < 0) {
+                    //  throw new RuntimeException("Cannot encode histogram containing negative counts (" +
+                    //          count + ") at index " + src_index + ", corresponding the value range [" +
+                    //          lowestEquivalentValue(valueFromIndex(src_index)) + "," +
+                    //          nextNonEquivalentValue(valueFromIndex(src_index)) + ")");
+                }
+                // Count trailing 0s (which follow this count):
+                int64 zeros_count = 0;
+                if (count == 0) {
+                    zeros_count = 1;
+                    while ((src_index < counts_limit) && (get_count_at_index(src_index) == 0)) {
+                        zeros_count++;
+                        src_index++;
+                    }
+                }
+                if (zeros_count > 1) {
+                    encoder.encode_int64(-zeros_count);
+                } else {
+                    encoder.encode_int64(count);
+                }
+            }
+        }
+
+        /**
+         * Get the capacity needed to encode this histogram into a ByteBuffer
+         * @return the capacity needed to encode this histogram into a ByteBuffer
+         */
+        public int get_needed_byte_buffer_capacity() {
+            return get_relevant_needed_byte_buffer_capacity(counts_array_length);
+        }
+
+
+        internal int get_relevant_needed_byte_buffer_capacity(int relevant_length) {
+            return get_needed_payload_byte_buffer_capacity(relevant_length) + AbstractHistogram.ENCODING_HEADER_SIZE;
+        }
+
+        internal int get_needed_payload_byte_buffer_capacity(int relevant_length) {
+            return (relevant_length * AbstractHistogram.V2maxWordSizeInBytes);
+        }        
     }
 
      /**

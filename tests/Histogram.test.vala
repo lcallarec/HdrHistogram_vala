@@ -334,5 +334,20 @@ namespace HdrHistogram {
 
            assert(output_percentile_distribution == expected_output);
         });
+
+        Test.add_func("/HdrHistogram/Histogram/encode_compressed", () => {
+            // given
+            var histogram = new Histogram(1, 300, 3);
+            
+            // when
+            histogram.record_value(100);
+            histogram.record_value(200);
+            histogram.record_value(250);
+            
+            var dump = histogram.encode_compressed();
+            
+            //then
+            assert(dump == "HISTFAAAACV4nJNpmSzMwMDAwQABzFCaEUrp2H+AsI4zMh1lZEpkAgBdIQSk");   
+        });
     }
 }

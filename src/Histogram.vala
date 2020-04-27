@@ -57,6 +57,10 @@ namespace HdrHistogram {
             }
         }
 
+        internal override int get_normalizing_index_offset() {
+            return normalizing_index_offset;
+        }
+
         internal override void set_normalizing_index_offset(int normalizing_index_offset) {
             this.normalizing_index_offset = normalizing_index_offset;
         }
