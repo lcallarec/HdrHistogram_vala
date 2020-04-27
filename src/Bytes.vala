@@ -21,6 +21,7 @@ namespace HdrHistogram {
     Bytes double_to_bytes(double value) {
         double v = value;
         uint8[] bytes = (uint8[])&v;
-        return new Bytes.take(bytes);
+        var be_bytes = Arrays.Bytes.reverse(bytes);
+        return new Bytes.take(be_bytes);
     }
 }
