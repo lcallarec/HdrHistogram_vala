@@ -69,4 +69,37 @@ namespace HdrHistogram {
             return ByteOrder.BIG_ENDIAN;
         }
     }
+
+    public class BytesArrayReader {
+        public int position { get; set; default = 0; }
+        private uint8[] buffer;
+
+        public BytesArrayReader(ByteArray buffer) {
+            this.buffer = buffer.data;
+        }
+
+        public int read_int8() {
+            return buffer[position++];
+        }
+
+        public int read_int32() {
+            var bytes = buffer[position:position+4];
+            position += 4;
+            return (bytes[0] << 24) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3];
+        }
+
+        public int64 read_int64() {
+            var bytes = buffer[position:position+8];
+            position += 8;
+            return ((int64) bytes[0] << 56) + ((int64)bytes[1] << 48) + ((int64)bytes[2] << 40) + ((int64)bytes[3] << 32) + ((int64)bytes[4] << 24) + ((int64)bytes[5] << 16) + ((int64)bytes[6] << 8) + (int64)bytes[7];
+        }
+
+        public double read_double() {
+            uint8[] bytes = buffer[position:position+8];
+            position += 8;
+            int64 v = ((int64) bytes[0] << 56) + ((int64)bytes[1] << 48) + ((int64)bytes[2] << 40) + ((int64)bytes[3] << 32) + ((int64)bytes[4] << 24) + ((int64)bytes[5] << 16) + ((int64)bytes[6] << 8) + (int64)bytes[7];
+            double* f = (double *)(&v);
+            return *f;
+        }
+    }
 }
