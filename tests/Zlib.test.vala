@@ -7,14 +7,9 @@ namespace HdrHistogram {
 
             //when
             var compressed = Zlib.compress(input.data);
-            for(var i = 0; i < compressed.length; i++) {
-                stdout.printf("compressed[%d] = %d\n", i, compressed[i]);
-            }
-
+ 
             //expect
             var encoded_compressed = Base64.encode((uchar[]) compressed);
-            stdout.printf("encoded_compressed = %s\n", encoded_compressed);
-            stdout.flush();
 
             assert(encoded_compressed == "eJxzdHJ2AQACmAEL");
         });
@@ -25,13 +20,8 @@ namespace HdrHistogram {
 
             //when
             var decompressed = Zlib.decompress(input);
-            for(var i = 0; i < decompressed.length; i++) {
-                stdout.printf("decompressed[%d] = %d\n", i, decompressed[i]);
-            }
 
-            //expect
-            //  stdout.printf("encoded_compressed = %s\n", encoded_compressed);
-            //  stdout.flush();
+            //then
             stdout.printf("(string) decompressed %s\n", (string) decompressed);
             assert("ABCD" == (string) decompressed);
         });
