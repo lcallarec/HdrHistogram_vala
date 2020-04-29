@@ -735,37 +735,24 @@ namespace HdrHistogram {
             return V2CompressedEncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
         }
 
-        public ByteArray encode_into_byte_buffer(ByteArray buffer = new ByteArray()) {
+        public ByteArray encode_into_byte_buffer() {
             int64 max_value = get_max_value();
             int relevant_length = counts_array_index(max_value) + 1;
             
-            BytesConverter converter = new BytesConverter(ByteOrder.BIG_ENDIAN);
+            ByteArrayWriter writer = new ByteArrayWriter(ByteOrder.BIG_ENDIAN);
 
-            Bytes cookie = converter.int_to_bytes(get_encoding_cookie());
-            Bytes index_offset = converter.int_to_bytes(get_normalizing_index_offset());
-            Bytes digits = converter.int_to_bytes(number_of_significant_value_digits);
-            Bytes lowest = converter.int64_to_bytes(lowest_discernible_value);
-            Bytes highest = converter.int64_to_bytes(highest_trackable_value);
-            Bytes ratio = converter.double_to_bytes(get_integer_to_double_value_conversion_ratio());            
+            var payload_buffer = create_bytes_from_counts_array();
 
-            int needed_capacity = get_needed_byte_buffer_capacity();
-            
-            var payload_buffer = new ByteArray();
-            fill_bytes_from_counts_array(payload_buffer);
+            writer.put_int32(get_encoding_cookie());
+            writer.put_int32((int) payload_buffer.len);
+            writer.put_int32(get_normalizing_index_offset());
+            writer.put_int32(number_of_significant_value_digits);
+            writer.put_int64(lowest_discernible_value);
+            writer.put_int64(highest_trackable_value);
+            writer.put_double(get_integer_to_double_value_conversion_ratio());
+            writer.put_byte_array(payload_buffer);
 
-            var payload_size = (int) payload_buffer.len;
-            
-            buffer.append(cookie.get_data());
-            buffer.append(converter.int_to_bytes(payload_size).get_data());
-            buffer.append(index_offset.get_data());
-            buffer.append(digits.get_data());
-            buffer.append(lowest.get_data());
-            buffer.append(highest.get_data());
-            buffer.append(ratio.get_data());
-            
-            buffer.append(payload_buffer.data);
-
-            return buffer;
+            return writer.to_byte_array();
         }
 
         /**
@@ -777,21 +764,18 @@ namespace HdrHistogram {
         public ByteArray encode_into_compressed_byte_buffer(int compression_level = -1) {
             int needed_capacity = get_needed_byte_buffer_capacity();
 
-            var uncompressed_byte_array = encode_into_byte_buffer(new ByteArray.sized(needed_capacity));
+            var uncompressed_byte_array = encode_into_byte_buffer();
     
-            var converter = new BytesConverter(ByteOrder.BIG_ENDIAN);
+            ByteArrayWriter writer = new ByteArrayWriter(ByteOrder.BIG_ENDIAN);
             
             var compressed_array = Zlib.compress(uncompressed_byte_array.data); 
 
-            var target_buffer = new ByteArray();
+            writer.put_int32(get_compressed_encoding_cookie());
 
-            Bytes cookie = converter.int_to_bytes(get_compressed_encoding_cookie());
-            
-            target_buffer.append(cookie.get_data());
-            target_buffer.append(converter.int_to_bytes(compressed_array.length).get_data());
-            target_buffer.append(compressed_array);
+            writer.put_int32(compressed_array.length);
+            writer.put_bytes(compressed_array);
 
-            return target_buffer;
+            return writer.to_byte_array();
         }
 
         public string encode() {
@@ -804,11 +788,11 @@ namespace HdrHistogram {
             return Base64.encode((uchar[]) buffer.data);
         }
 
-        internal void fill_bytes_from_counts_array(ByteArray buffer) {
+        internal ByteArray create_bytes_from_counts_array() {
             int counts_limit = counts_array_index(max_value) + 1;
             int src_index = 0;
             
-            var encoder = new ZigZagEncoder(buffer);
+            var encoder = new ZigZagEncoder();
 
             while (src_index < counts_limit) {
                 // V2 encoding format uses a ZigZag LEB128-64b9B encoded int64. Positive values are counts,
@@ -835,6 +819,8 @@ namespace HdrHistogram {
                     encoder.encode_int64(count);
                 }
             }
+
+            return encoder.to_byte_array();
         }
 
         /**

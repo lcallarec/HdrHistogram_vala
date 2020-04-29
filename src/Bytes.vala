@@ -1,20 +1,86 @@
 namespace HdrHistogram { 
 
-    public class BytesConverter {
+    public class ByteArrayWriter {
         private ByteOrder endianness;
-        private ByteOrder host_endianness = BytesConverter.get_host_endianness();
+        private ByteConverter converter;
+        private uint8[] buffer = new uint8[]{};
+        public int position { get; set; default = 0; }
 
-        public BytesConverter(ByteOrder endianness) {
+        public ByteArrayWriter(ByteOrder endianness) {
+            this.endianness = endianness;
+            converter = new ByteConverter(endianness);
+        }
+
+        public void put_int8(int8 value) {
+            buffer.resize(position + 1);
+            var bytes = converter.int8_to_bytes(value);
+            buffer[position] = bytes[0];
+            position++;
+        }
+
+        public void put_int32(int32 value) {
+            buffer.resize(position + 4);
+            var bytes = converter.int32_to_bytes(value);
+            for (var i = 0; i < 4; i++) {
+                buffer[position + i] = bytes[i];
+            }
+            position += 4;
+        }
+
+        public void put_int64(int64 value) {
+            buffer.resize(position + 8);
+            var bytes = converter.int64_to_bytes(value);
+            for (var i = 0; i < 8; i++) {
+                buffer[position + i] = bytes[i];
+            }
+            position += 8;
+        }
+
+        public void put_double(double value) {
+            buffer.resize(position + 8);
+            var bytes = converter.double_to_bytes(value);
+            for (var i = 0; i < 8; i++) {
+                buffer[position + i] = bytes[i];
+            }
+            position += 8;
+        }
+
+        public void put_byte_array(ByteArray byte_array) {
+            buffer.resize(position + (int) byte_array.len);
+            for (var i = 0; i < byte_array.len; i++) {
+                buffer[position + i] = byte_array.data[i];
+            }
+            position += (int) byte_array.len;
+        }
+
+        public void put_bytes(uint8[] bytes) {
+            buffer.resize(position + bytes.length);
+            for (var i = 0; i < bytes.length; i++) {
+                buffer[position + i] = bytes[i];
+            }
+            position += (int) bytes.length;
+        }
+
+        public ByteArray to_byte_array() {
+            return new ByteArray.take(buffer);
+        }
+    }
+
+    internal class ByteConverter {
+        private ByteOrder endianness;
+        private ByteOrder host_endianness = ByteConverter.get_host_endianness();
+
+        public ByteConverter(ByteOrder endianness) {
             this.endianness = endianness;
         }
 
-        public Bytes int8_to_bytes(int8 value) {
+        public uint8[] int8_to_bytes(int8 value) {
             int8 v = value;
             uint8[] bytes = (uint8[])&v;
-            return new Bytes.take(bytes);
+            return bytes;
         }
     
-        public Bytes int_to_bytes(int value) {
+        public uint8[] int32_to_bytes(int value) {
             int v = value;
             if (endianness == ByteOrder.HOST) {
                 v = value;
@@ -26,10 +92,10 @@ namespace HdrHistogram {
                 v = value.to_little_endian();
             }
             uint8[] bytes = (uint8[])&v;
-            return new Bytes.take(bytes);
+            return bytes;
         }
     
-        public Bytes int64_to_bytes(int64 value) {
+        public uint8[] int64_to_bytes(int64 value) {
             int64 v = value;
             if (endianness == ByteOrder.HOST) {
                 v = value;
@@ -41,10 +107,10 @@ namespace HdrHistogram {
                 v = value.to_little_endian();
             }
             uint8[] bytes = (uint8[])&v;
-            return new Bytes.take(bytes);
+            return bytes;
         }
     
-        public Bytes double_to_bytes(double value) {
+        public uint8[] double_to_bytes(double value) {
             double v = value;
             uint8[] bytes = (uint8[])&v;
             var be_bytes = bytes;
@@ -58,7 +124,7 @@ namespace HdrHistogram {
                 be_bytes = Arrays.Bytes.reverse(bytes);
             }
             
-            return new Bytes.take(be_bytes);
+            return be_bytes;
         }
 
         private static ByteOrder get_host_endianness() {
@@ -70,11 +136,11 @@ namespace HdrHistogram {
         }
     }
 
-    public class BytesArrayReader {
+    public class ByteArrayReader {
         public int position { get; set; default = 0; }
         private uint8[] buffer;
 
-        public BytesArrayReader(ByteArray buffer) {
+        public ByteArrayReader(ByteArray buffer) {
             this.buffer = buffer.data;
         }
 

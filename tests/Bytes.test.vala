@@ -1,52 +1,47 @@
 namespace HdrHistogram { 
 
     void register_bytes() {
-        Test.add_func("/HdrHistogram/Bytes", () => {
+        Test.add_func("/HdrHistogram/ByteArrayWriter", () => {
             //given
-            var buffer = new ByteArray.sized(32);
-            var converter = new BytesConverter(ByteOrder.BIG_ENDIAN);
-            //when
-            buffer.append(converter.int_to_bytes(1024).get_data());
-
-            //then
-            assert(buffer.len == 4);
-
-            assert(
-                new Bytes.take(buffer.data).compare(
-                    new Bytes.take({0, 0, 4, 0})
-                ) == 0);
+             var writer = new ByteArrayWriter(ByteOrder.BIG_ENDIAN);
 
             //when
-            buffer.append(converter.int64_to_bytes(12).get_data());
+            writer.put_int32(1024);
 
             //then
-            assert(buffer.len == 12);
-            assert(new Bytes.take(buffer.data).compare(new Bytes.take({0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 12})) == 0);
+            assert(writer.position == 4);
+
+            assert(new Bytes.take(writer.to_byte_array().data).compare(new Bytes.take({0, 0, 4, 0})) == 0);
 
             //when
-            buffer.append(converter.double_to_bytes((double) 1).get_data());
+            writer.put_int64(12);
 
             //then
-            assert(buffer.len == 20);            
-            assert(new Bytes.take(buffer.data).compare(new Bytes.take({0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 12, 63, 240, 0, 0, 0, 0, 0, 0})) == 0);
+            assert(writer.position == 12);
+            assert(new Bytes.take(writer.to_byte_array().data).compare(new Bytes.take({0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 12})) == 0);
+
+            //when
+            writer.put_double(1);
+
+            //then
+            assert(writer.position == 20);
+            assert(new Bytes.take(writer.to_byte_array().data).compare(new Bytes.take({0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 12, 63, 240, 0, 0, 0, 0, 0, 0})) == 0);
         });
 
         Test.add_func("/HdrHistogram/BytesArrayReader", () => {
             //given
-            var buffer = new ByteArray.sized(32);
-            var converter = new BytesConverter(ByteOrder.BIG_ENDIAN);
-            
+            var writer = new ByteArrayWriter(ByteOrder.BIG_ENDIAN);            
+            writer.put_int8(127);
+            writer.put_int8(12);
+            writer.put_int32(57897);
+            writer.put_int32(int32.MAX);
+            writer.put_int64(987455678);
+            writer.put_int64(int64.MAX);
+            writer.put_double(3.94);
+            writer.put_int8(100);
+
             //when
-            buffer.append(converter.int8_to_bytes(127).get_data());
-            buffer.append(converter.int8_to_bytes(12).get_data());
-            buffer.append(converter.int_to_bytes(57897).get_data());
-            buffer.append(converter.int_to_bytes(int32.MAX).get_data());
-            buffer.append(converter.int64_to_bytes(987455678).get_data());
-            buffer.append(converter.int64_to_bytes(int64.MAX).get_data());
-            buffer.append(converter.double_to_bytes(3.94).get_data());
-            buffer.append(converter.int8_to_bytes(100).get_data());            
-            
-            var reader = new BytesArrayReader(buffer);
+            var reader = new ByteArrayReader(writer.to_byte_array());
 
             //then
             assert(reader.read_int8() == 127);

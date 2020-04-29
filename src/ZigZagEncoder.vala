@@ -2,11 +2,10 @@ namespace HdrHistogram {
     
     public class ZigZagEncoder {
 
-        private ByteArray buffer;
-        private BytesConverter converter = new BytesConverter(ByteOrder.LITTLE_ENDIAN);
+        private ByteArrayWriter writer = new ByteArrayWriter(ByteOrder.LITTLE_ENDIAN);
 
-        public ZigZagEncoder(ByteArray buffer) {
-            this.buffer = buffer;
+        public ByteArray to_byte_array() {
+            return writer.to_byte_array();
         }
 
         /**
@@ -17,38 +16,38 @@ namespace HdrHistogram {
         public void encode_int64(int64 value) {
             value = (value << 1) ^ (value >> 63);
             if (value >> 7 == 0) {
-                buffer.append(converter.int8_to_bytes((int8) value).get_data());
+                writer.put_int8((int8) value);
             } else {
-                buffer.append(converter.int8_to_bytes((int8) ((value & 0x7F) | 0x80)).get_data());
+                writer.put_int8((int8) ((value & 0x7F) | 0x80));
                 if (value >> 14 == 0) {
-                    buffer.append(converter.int8_to_bytes((int8) (value >> 7)).get_data());
+                    writer.put_int8((int8) (value >> 7));
                 } else {
-                    buffer.append(converter.int8_to_bytes((int8) (value >> 7 | 0x80)).get_data());
+                    writer.put_int8((int8) (value >> 7 | 0x80));
                     if (value >> 21 == 0) {
-                        buffer.append(converter.int8_to_bytes((int8) (value >> 14)).get_data());
+                        writer.put_int8((int8) (value >> 14));
                     } else {
-                        buffer.append(converter.int8_to_bytes((int8) (value >> 14 | 0x80)).get_data());
+                        writer.put_int8((int8) (value >> 14 | 0x80));
                         if (value >> 28 == 0) {
-                            buffer.append(converter.int8_to_bytes((int8) (value >> 21)).get_data());
+                            writer.put_int8((int8) (value >> 21));
                         } else {
-                            buffer.append(converter.int8_to_bytes((int8) (value >> 21 | 0x80)).get_data());
+                            writer.put_int8((int8) (value >> 21 | 0x80));
                             if (value >> 35 == 0) {
-                                buffer.append(converter.int8_to_bytes((int8) (value >> 28)).get_data());
+                                writer.put_int8((int8) (value >> 28));
                             } else {
-                                buffer.append(converter.int8_to_bytes((int8) (value >> 28 | 0x80)).get_data());
+                                writer.put_int8((int8) (value >> 28 | 0x80));
                                 if (value >> 42 == 0) {
-                                    buffer.append(converter.int8_to_bytes((int8) (value >> 35)).get_data());
+                                    writer.put_int8((int8) (value >> 35));
                                 } else {
-                                    buffer.append(converter.int8_to_bytes((int8) (value >> 35 | 0x80)).get_data());
+                                    writer.put_int8((int8) (value >> 35 | 0x80));
                                     if (value >> 49 == 0) {
-                                        buffer.append(converter.int8_to_bytes((int8) (value >> 42)).get_data());
+                                        writer.put_int8((int8) (value >> 42));
                                     } else {
-                                        buffer.append(converter.int8_to_bytes((int8) (value >> 42 | 0x80)).get_data());
+                                        writer.put_int8((int8) (value >> 42 | 0x80));
                                         if (value >> 56 == 0) {
-                                            buffer.append(converter.int8_to_bytes((int8) (value >> 49)).get_data());
+                                            writer.put_int8((int8) (value >> 49));
                                         } else {
-                                            buffer.append(converter.int8_to_bytes((int8) (value >> 49 | 0x80)).get_data());
-                                            buffer.append(converter.int8_to_bytes((int8) (value >> 56)).get_data());
+                                            writer.put_int8((int8) (value >> 49 | 0x80));
+                                            writer.put_int8((int8) (value >> 56));
                                         }
                                     }
                                 }
