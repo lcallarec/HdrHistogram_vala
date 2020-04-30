@@ -1,6 +1,6 @@
-namespace HdrHistogram { 
+namespace HdrHistogram.ZigZag { 
     
-    public class ZigZagEncoder {
+    public class Encoder {
 
         private ByteArrayWriter writer = new ByteArrayWriter(ByteOrder.LITTLE_ENDIAN);
 
@@ -57,5 +57,58 @@ namespace HdrHistogram {
                 }
             }
         }
+    }
+
+    public class Decoder {
+        
+        private ByteArrayReader reader;
+
+        public Decoder(ByteArray buffer) {
+            reader = new ByteArrayReader(buffer, ByteOrder.LITTLE_ENDIAN);
+        }
+
+        /**
+         * Read an LEB128-64b9B ZigZag encoded int64 value from the given buffer
+         * @param buffer the buffer to read from
+         * @return the value read from the buffer
+         */
+        public int64 decode_int64() {
+            int64 v = reader.read_int8();
+            int64 value = v & 0x7F;
+            if ((v & 0x80) != 0) {
+                v = reader.read_int8();
+                value |= (v & 0x7F) << 7;
+                if ((v & 0x80) != 0) {
+                    v = reader.read_int8();
+                    value |= (v & 0x7F) << 14;
+                    if ((v & 0x80) != 0) {
+                        v = reader.read_int8();
+                        value |= (v & 0x7F) << 21;
+                        if ((v & 0x80) != 0) {
+                            v = reader.read_int8();
+                            value |= (v & 0x7F) << 28;
+                            if ((v & 0x80) != 0) {
+                                v = reader.read_int8();
+                                value |= (v & 0x7F) << 35;
+                                if ((v & 0x80) != 0) {
+                                    v = reader.read_int8();
+                                    value |= (v & 0x7F) << 42;
+                                    if ((v & 0x80) != 0) {
+                                        v = reader.read_int8();
+                                        value |= (v & 0x7F) << 49;
+                                        if ((v & 0x80) != 0) {
+                                            v = reader.read_int8();
+                                            value |= v << 56;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            value = (value >> 1) ^ (-(value & 1));
+            return value;
+        }   
     }
 }

@@ -792,7 +792,7 @@ namespace HdrHistogram {
             int counts_limit = counts_array_index(max_value) + 1;
             int src_index = 0;
             
-            var encoder = new ZigZagEncoder();
+            var encoder = new ZigZag.Encoder();
 
             while (src_index < counts_limit) {
                 // V2 encoding format uses a ZigZag LEB128-64b9B encoded int64. Positive values are counts,

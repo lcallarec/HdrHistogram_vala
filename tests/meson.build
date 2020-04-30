@@ -5,7 +5,7 @@ test_sources = [
     'Zlib.test.vala',
     'Histogram.test.vala', 
     'Int64.test.vala',
-    'ZigZagEncoder.test.vala'
+    'ZigZag.test.vala'
 ]
 
 test('hdr-tests', executable('hdr-tests', test_sources + sources, dependencies: deps))

@@ -11,7 +11,7 @@ sources = files(
     'Iterator.vala',
     'PercentileIterator.vala',
     'RecordedValuesIterator.vala',
-    'ZigZagEncoder.vala',
+    'ZigZag.vala',
     'Zlib.vala'
 )
 
