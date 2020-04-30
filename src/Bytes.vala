@@ -1,4 +1,12 @@
-namespace HdrHistogram { 
+namespace HdrHistogram {
+
+    public ByteOrder get_host_endianness() {
+        int num = 1;
+        if(*(char *)&num == 1) {
+            return ByteOrder.LITTLE_ENDIAN;
+        }
+        return ByteOrder.BIG_ENDIAN;
+    }
 
     public class ByteArrayWriter {
         private ByteOrder endianness;
@@ -6,8 +14,12 @@ namespace HdrHistogram {
         private uint8[] buffer = new uint8[]{};
         public int position { get; set; default = 0; }
 
-        public ByteArrayWriter(ByteOrder endianness) {
-            this.endianness = endianness;
+        public ByteArrayWriter(ByteOrder endianness = ByteOrder.HOST) {
+            if (endianness == ByteOrder.HOST) {
+                this.endianness = get_host_endianness();
+            } else {
+                this.endianness = endianness;
+            }
             converter = new ByteConverter(endianness);
         }
 
@@ -68,7 +80,7 @@ namespace HdrHistogram {
 
     internal class ByteConverter {
         private ByteOrder endianness;
-        private ByteOrder host_endianness = ByteConverter.get_host_endianness();
+        private ByteOrder host_endianness = get_host_endianness();
 
         public ByteConverter(ByteOrder endianness) {
             this.endianness = endianness;
@@ -82,9 +94,6 @@ namespace HdrHistogram {
     
         public uint8[] int32_to_bytes(int value) {
             int v = value;
-            if (endianness == ByteOrder.HOST) {
-                v = value;
-            }
             if (endianness == ByteOrder.BIG_ENDIAN) {
                 v = value.to_big_endian();
             }
@@ -97,9 +106,6 @@ namespace HdrHistogram {
     
         public uint8[] int64_to_bytes(int64 value) {
             int64 v = value;
-            if (endianness == ByteOrder.HOST) {
-                v = value;
-            }
             if (endianness == ByteOrder.BIG_ENDIAN) {
                 v = value.to_big_endian();
             }
@@ -126,22 +132,16 @@ namespace HdrHistogram {
             
             return be_bytes;
         }
-
-        private static ByteOrder get_host_endianness() {
-            int num = 1;
-            if(*(char *)&num == 1) {
-                return ByteOrder.LITTLE_ENDIAN;
-            }
-            return ByteOrder.BIG_ENDIAN;
-        }
     }
 
     public class ByteArrayReader {
         public int position { get; set; default = 0; }
+        private ByteOrder endianness;
         private uint8[] buffer;
 
-        public ByteArrayReader(ByteArray buffer) {
+        public ByteArrayReader(ByteArray buffer, ByteOrder endianness = get_host_endianness()) {
             this.buffer = buffer.data;
+            this.endianness = endianness;
         }
 
         public int read_int8() {
@@ -151,19 +151,34 @@ namespace HdrHistogram {
         public int read_int32() {
             var bytes = buffer[position:position+4];
             position += 4;
-            return (bytes[0] << 24) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3];
+            if (endianness == ByteOrder.BIG_ENDIAN) {
+                return (bytes[0] << 24) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3];
+            }
+
+            return bytes[0] + (bytes[1] << 8) + (bytes[2] << 16) + (bytes[3] << 24);
         }
 
         public int64 read_int64() {
             var bytes = buffer[position:position+8];
             position += 8;
-            return ((int64) bytes[0] << 56) + ((int64)bytes[1] << 48) + ((int64)bytes[2] << 40) + ((int64)bytes[3] << 32) + ((int64)bytes[4] << 24) + ((int64)bytes[5] << 16) + ((int64)bytes[6] << 8) + (int64)bytes[7];
+            if (endianness == ByteOrder.BIG_ENDIAN) {
+                return ((int64) bytes[0] << 56) + ((int64)bytes[1] << 48) + ((int64)bytes[2] << 40) + ((int64)bytes[3] << 32) + ((int64)bytes[4] << 24) + ((int64)bytes[5] << 16) + ((int64)bytes[6] << 8) + (int64)bytes[7];
+            }
+
+            return ((int64) bytes[0]) + ((int64)bytes[1] << 8) + ((int64)bytes[2] << 16) + ((int64)bytes[3] << 24) + ((int64)bytes[4] << 32) + ((int64)bytes[5] << 40) + ((int64)bytes[6] << 48) + ((int64)bytes[7] << 56);
         }
 
         public double read_double() {
             uint8[] bytes = buffer[position:position+8];
             position += 8;
-            int64 v = ((int64) bytes[0] << 56) + ((int64)bytes[1] << 48) + ((int64)bytes[2] << 40) + ((int64)bytes[3] << 32) + ((int64)bytes[4] << 24) + ((int64)bytes[5] << 16) + ((int64)bytes[6] << 8) + (int64)bytes[7];
+
+            int64 v;
+            if (endianness == ByteOrder.BIG_ENDIAN) {
+                v = ((int64) bytes[0] << 56) + ((int64)bytes[1] << 48) + ((int64)bytes[2] << 40) + ((int64)bytes[3] << 32) + ((int64)bytes[4] << 24) + ((int64)bytes[5] << 16) + ((int64)bytes[6] << 8) + (int64)bytes[7];
+            } else {
+                v = ((int64) bytes[0]) + ((int64)bytes[1] << 8) + ((int64)bytes[2] << 16) + ((int64)bytes[3] << 24) + ((int64)bytes[4] << 32) + ((int64)bytes[5] << 40) + ((int64)bytes[6] << 48) + ((int64)bytes[7] << 56);
+            }
+
             double* f = (double *)(&v);
             return *f;
         }
