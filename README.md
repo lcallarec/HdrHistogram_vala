@@ -15,7 +15,8 @@ This is still WIP, ready soon !
 - [x] Handle concurrent accesses in RecordedValuesIterator
 - [x] Encode histogram
 - [x] Encode & compress histogram
-- [ ] Decode histograms
+- [x] Decode uncompressed histograms
+- [x] Decode compressed histograms
 - [ ] Corrected coordinated omissions
 - [ ] Add histograms
 - [ ] Substract histograms

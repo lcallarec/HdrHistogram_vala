@@ -9,11 +9,11 @@ namespace HdrHistogram.Zlib {
             throw new ZlibError.COMPRESSION_LEVEL_OUT_OF_RANGE(@"Compression level should be between -1 (default) and 9");
         } 
         
-        var mistream = new MemoryInputStream.from_data(input);
+         var mistream = new MemoryInputStream.from_data(input);
         ZlibCompressor converter = new ZlibCompressor(ZlibCompressorFormat.ZLIB, level);
 
         var cistream = new ConverterInputStream(mistream, converter);
-		DataInputStream distream = new DataInputStream (cistream);
+        DataInputStream distream = new DataInputStream (cistream);
 
         uint8[] output = {};
         while(true) {
@@ -30,7 +30,7 @@ namespace HdrHistogram.Zlib {
         ZlibDecompressor converter = new ZlibDecompressor(ZlibCompressorFormat.ZLIB);
 
         var cistream = new ConverterInputStream(mistream, converter);
-		DataInputStream distream = new DataInputStream (cistream);
+        DataInputStream distream = new DataInputStream (cistream);
 
         uint8[] output = {};
         while(true) {

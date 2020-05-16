@@ -64,5 +64,17 @@ namespace HdrHistogram {
         internal override void set_normalizing_index_offset(int normalizing_index_offset) {
             this.normalizing_index_offset = normalizing_index_offset;
         }
+
+        internal override void set_integer_to_double_value_conversion_ratio(double integer_to_double_value_conversion_ratio) {
+            non_concurrent_set_integer_to_double_value_conversion_ratio(integer_to_double_value_conversion_ratio);
+        }
+
+        internal override void set_count_at_index(int index, int64 value) {
+            counts[normalize_index(index, normalizing_index_offset, counts_array_length)] = value;
+        }
+
+        internal override void set_total_count(int64 total_count) {
+            this.total_count = total_count;
+        }
     }
 }

@@ -56,7 +56,8 @@ namespace HdrHistogram {
 
         Test.add_func("/HdrHistogram/BytesArrayReader#ByteOrder.LITTLE_ENDIAN", () => {
             //given
-            var writer = new ByteArrayWriter(ByteOrder.LITTLE_ENDIAN);            
+            var writer = new ByteArrayWriter(ByteOrder.LITTLE_ENDIAN);  
+            writer.put_int32(478450451);       
             writer.put_int8(127);
             writer.put_int8(12);
             writer.put_int32(57897);
@@ -70,6 +71,7 @@ namespace HdrHistogram {
             var reader = new ByteArrayReader(writer.to_byte_array(), ByteOrder.LITTLE_ENDIAN);
 
             //then
+            assert(reader.read_int32() == 478450451);
             assert(reader.read_int8() == 127);
             assert(reader.read_int8() == 12);
             assert(reader.read_int32() == 57897);

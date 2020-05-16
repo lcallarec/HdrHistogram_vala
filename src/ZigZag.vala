@@ -67,6 +67,10 @@ namespace HdrHistogram.ZigZag {
             reader = new ByteArrayReader(buffer, ByteOrder.LITTLE_ENDIAN);
         }
 
+        public Decoder.with_reader(ByteArrayReader reader) {
+            this.reader = reader;
+        }
+
         /**
          * Read an LEB128-64b9B ZigZag encoded int64 value from the given buffer
          * @param buffer the buffer to read from

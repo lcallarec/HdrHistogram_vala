@@ -5,7 +5,8 @@ namespace HdrHistogram {
         INDEX_OUT_OF_BOUNDS,
         CONCURRENT_MODIFICATION_EXCEPTION,
         NO_SUCH_ELEMENT,
-        UNSUPPORTED_OPERATION
+        UNSUPPORTED_OPERATION,
+        DECODE_NO_VALID_COOKIE
     }
 
     /**
@@ -29,12 +30,14 @@ namespace HdrHistogram {
          */
         internal int sub_bucket_count;
         internal int counts_array_length;
+        internal int word_size_in_bytes;
 
         internal int64 start_time_stamp_msec = int64.MAX;
         internal int64 end_time_stamp_msec = 0;
         internal string tag = null;
 
         internal double integer_to_double_value_conversion_ratio = 1.0;
+        internal double double_to_integer_value_conversion_ratio = 1.0;
 
         internal PercentileIterator percentile_iterator;
         internal RecordedValuesIterator recorded_values_iterator;
@@ -42,6 +45,13 @@ namespace HdrHistogram {
         internal double get_integer_to_double_value_conversion_ratio() {
             return integer_to_double_value_conversion_ratio;
         }
+
+        internal void non_concurrent_set_integer_to_double_value_conversion_ratio(double integer_to_double_value_conversion_ratio) {
+            this.integer_to_double_value_conversion_ratio = integer_to_double_value_conversion_ratio;
+            double_to_integer_value_conversion_ratio = 1.0/integer_to_double_value_conversion_ratio;
+        }
+
+        internal abstract void set_integer_to_double_value_conversion_ratio(double integer_to_double_value_conversion_ratio);
     }
 
     public abstract class AbstractHistogram : AbstractHistogramBase {
@@ -80,7 +90,8 @@ namespace HdrHistogram {
         internal abstract void clear_counts();
         internal abstract int get_normalizing_index_offset();
         internal abstract void set_normalizing_index_offset(int normalizing_index_offset);
-
+        internal abstract void set_count_at_index(int index, int64 value);
+        internal abstract void set_total_count(int64 totalCount);
         /**
          * Get the total count of all recorded values in the histogram
          * @return the total count of all recorded values in the histogram
@@ -724,11 +735,24 @@ namespace HdrHistogram {
         }
         private const int ENCODING_HEADER_SIZE = 40;
         private const int V2EncodingCookieBase = 0x1c849303;
-        private  const int V2CompressedEncodingCookieBase = 0x1c849304;
+        private const int V2CompressedEncodingCookieBase = 0x1c849304;
         private const int V2maxWordSizeInBytes = 9; // LEB128-64b9B + ZigZag require up to 9 bytes per word
 
         private int get_encoding_cookie() {
             return V2EncodingCookieBase | 0x10; // LSBit of wordsize byte indicates TLZE Encoding
+        }
+
+        private static int get_cookie_base(int cookie) {
+            return (cookie & ~0xf0);
+        }
+
+        private static int get_word_size_in_bytes_from_cookie(int cookie) {
+            if ((get_cookie_base(cookie) == V2EncodingCookieBase) ||
+                    (get_cookie_base(cookie) == V2CompressedEncodingCookieBase)) {
+                return V2maxWordSizeInBytes;
+            }
+            int size_byte = (cookie & 0xf0) >> 4;
+            return size_byte & 0xe;
         }
 
         private int get_compressed_encoding_cookie() {
@@ -821,6 +845,126 @@ namespace HdrHistogram {
             }
 
             return encoder.to_byte_array();
+        }
+
+        public static AbstractHistogram decode_from_byte_buffer(ByteArray buffer, int64 min_bar_for_highest_trackable_value) {
+            var reader = new ByteArrayReader(buffer, ByteOrder.BIG_ENDIAN);
+            int cookie = reader.read_int32();
+            print("cookie := %d\n", cookie);
+            if (get_cookie_base(cookie) == V2EncodingCookieBase) {
+                if (get_word_size_in_bytes_from_cookie(cookie) != V2maxWordSizeInBytes) {
+                    throw new HdrError.DECODE_NO_VALID_COOKIE(
+                        "The buffer does not contain a Histogram (no valid cookie found)"
+                    );
+                }
+            } else {
+                throw new HdrError.DECODE_NO_VALID_COOKIE("The buffer does not contain a Histogram (no valid v2Encoding  cookie)");
+            }
+
+            var payload_length_in_bytes = reader.read_int32();
+            var normalizing_index_offset = reader.read_int32();
+            var number_of_significant_value_digits = (int8) reader.read_int32();
+            var lowest_trackable_unit_value = reader.read_int64();
+            var highest_trackable_value = reader.read_int64();
+            var integer_to_double_value_conversion_ratio = reader.read_double();
+
+            highest_trackable_value = int64.max(highest_trackable_value, min_bar_for_highest_trackable_value);
+
+            AbstractHistogram histogram;
+
+            // Construct histogram:
+            histogram = new Histogram(
+                lowest_trackable_unit_value,
+                highest_trackable_value,
+                number_of_significant_value_digits
+            );
+            histogram.set_integer_to_double_value_conversion_ratio(integer_to_double_value_conversion_ratio);
+            histogram.set_normalizing_index_offset(normalizing_index_offset);
+            
+            try {
+                histogram.set_auto_resize(true);
+            } catch {
+                // Allow histogram to refuse auto-sizing setting
+            }
+
+            int filled_length = histogram.fill_counts_array_from_source_buffer(
+                reader,
+                payload_length_in_bytes,
+                get_word_size_in_bytes_from_cookie(cookie)
+            );
+
+            histogram.establish_internal_tacking_values(filled_length);
+
+            return histogram;
+        }
+
+        private int fill_counts_array_from_source_buffer(ByteArrayReader reader, int length_in_bytes, int word_size_in_bytes) {
+            if ((word_size_in_bytes != 2) && (word_size_in_bytes != 4) &&
+                    (word_size_in_bytes != 8) && (word_size_in_bytes != V2maxWordSizeInBytes)) {
+                throw new HdrError.ILLEGAL_ARGUMENT("word size must be 2, 4, 8, or V2maxWordSizeInBytes ("+
+                        V2maxWordSizeInBytes.to_string() + ") bytes");
+            }
+            int64 max_allowable_count_in_histogram =
+                    ((this.word_size_in_bytes == 2) ? int8.MAX :
+                            ((this.word_size_in_bytes == 4) ? int32.MAX : int64.MAX)
+                    );
+
+            int dst_index = 0;
+            int end_position = reader.position + length_in_bytes;
+            var decoder = new ZigZag.Decoder.with_reader(reader);
+            while (reader.position < end_position) {
+                int64 count;
+                int zeros_count = 0;
+                
+                // V2 encoding format uses a long encoded in a ZigZag LEB128 format (up to V2maxWordSizeInBytes):
+                count = decoder.decode_int64();
+                if (count < 0) {
+                    int64 zc = -count;
+                    if (zc > int32.MAX) {
+                        throw new HdrError.ILLEGAL_ARGUMENT(
+                                "An encoded zero count of > int32.MAX was encountered in the source");
+                    }
+                    zeros_count = (int) zc;
+                }
+              
+                if (count > max_allowable_count_in_histogram) {
+                    throw new HdrError.ILLEGAL_ARGUMENT(
+                            "An encoded count (" + count.to_string() +
+                            ") does not fit in the Histogram's (" +
+                            this.word_size_in_bytes.to_string() + " bytes) was encountered in the source");
+                }
+                if (zeros_count > 0) {
+                    dst_index += zeros_count; // No need to set zeros in array. Just skip them.
+                } else {
+                    set_count_at_index(dst_index++, count);
+                }
+            }
+            return dst_index; // this is the destination length
+        }
+
+        internal void establish_internal_tacking_values(int length_to_cover) {
+            reset_max_value(0);
+            reset_min_non_zero_value(int64.MAX);
+            int max_index = -1;
+            int min_non_zero_index = -1;
+            int64 observed_total_count = 0;
+            for (int index = 0; index < length_to_cover; index++) {
+                int64 count_at_index;
+                if ((count_at_index = get_count_at_index(index)) > 0) {
+                    observed_total_count += count_at_index;
+                    max_index = index;
+                    if ((min_non_zero_index == -1) && (index != 0)) {
+                        min_non_zero_index = index;
+                    }
+                }
+            }
+            if (max_index >= 0) {
+                updated_max_value(highest_equivalent_value(value_from_index(max_index)));
+            }
+            if (min_non_zero_index >= 0) {
+                update_min_non_zero_value(value_from_index(min_non_zero_index));
+            }
+            set_total_count(observed_total_count);
         }
 
         /**
