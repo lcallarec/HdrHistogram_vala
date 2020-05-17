@@ -182,5 +182,11 @@ namespace HdrHistogram {
             double* f = (double *)(&v);
             return *f;
         }
+
+        public uint8[] take(int length) {
+            var bytes = buffer[position:position+length];
+            position += length;
+            return bytes;
+        }
     }
 }

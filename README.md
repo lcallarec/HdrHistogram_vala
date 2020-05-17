@@ -31,4 +31,4 @@ This is still WIP, ready soon !
 - [ ] int16 histogram
 - [ ] int32 histogram
 - [ ] Packed histogram
-- [ ] Sparse array histogram
+- [ ] Decode all kinds of histogramqs
