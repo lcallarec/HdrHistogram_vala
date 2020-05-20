@@ -847,6 +847,33 @@ namespace HdrHistogram {
             return encoder.to_byte_array();
         }
 
+
+        public static AbstractHistogram decode_from_compressed_byte_buffer(ByteArray compressed_buffer, int64 min_bar_for_highest_trackable_value) {
+
+            int initialTargetPosition = 0;
+
+            var reader = new ByteArrayReader(compressed_buffer, ByteOrder.BIG_ENDIAN);
+
+            int cookie = reader.read_int32();
+
+            int header_size;
+            if (get_cookie_base(cookie) == V2CompressedEncodingCookieBase) {
+                header_size = AbstractHistogram.ENCODING_HEADER_SIZE;
+            } else {
+                throw new HdrError.DECODE_NO_VALID_COOKIE(
+                     "The buffer does not contain a Histogram (no valid cookie found)"
+                );
+            }
+    
+            int length_of_compressed_contents = reader.read_int32();
+            var header_buffer = Zlib.decompress(reader.take(length_of_compressed_contents));
+            
+            var histogram = decode_from_byte_buffer(new ByteArray.take(header_buffer), min_bar_for_highest_trackable_value);
+            
+            return histogram;
+
+        }
+
         public static AbstractHistogram decode_from_byte_buffer(ByteArray buffer, int64 min_bar_for_highest_trackable_value) {
             var reader = new ByteArrayReader(buffer, ByteOrder.BIG_ENDIAN);
             int cookie = reader.read_int32();
@@ -858,7 +885,7 @@ namespace HdrHistogram {
                     );
                 }
             } else {
-                throw new HdrError.DECODE_NO_VALID_COOKIE("The buffer does not contain a Histogram (no valid v2Encoding  cookie)");
+                throw new HdrError.DECODE_NO_VALID_COOKIE("The buffer does not contain a Histogram (no valid v2Encoding cookie)");
             }
 
             var payload_length_in_bytes = reader.read_int32();
