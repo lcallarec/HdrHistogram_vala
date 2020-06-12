@@ -35,4 +35,4 @@ This is still WIP, ready soon !
 - [ ] int16 histogram
 - [ ] int32 histogram
 - [ ] Packed histogram
-- [ ] Decode all kinds of histogramqs
+- [ ] Decode all kinds of histograms
