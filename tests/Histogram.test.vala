@@ -413,5 +413,18 @@ namespace HdrHistogram {
                 assert_not_reached();
             }
         });
+
+        Test.add_func("/HdrHistogram/Histogram/record_value_with_expected_interval#generate_values", () => {
+            // given
+            var histogram = new Histogram(1, 1024, 3);
+    
+            // when
+            histogram.record_value_with_expected_interval(207, 100);
+    
+            // then
+            assert(histogram.total_count == 2);
+            assert(histogram.get_min_non_zero_value() == 107);
+            assert(histogram.get_max_value() == 207);
+        });
     }
 }

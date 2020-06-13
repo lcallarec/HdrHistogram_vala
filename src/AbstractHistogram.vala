@@ -114,11 +114,7 @@ namespace HdrHistogram {
          *                                     maintain value resolution and separation. Must be a non-negative
          *                                     integer between 0 and 5.
          */        
-        public AbstractHistogram(
-            int64 lowest_discernible_value,
-            int64 highest_trackable_value,
-            int8 number_of_significant_value_digits
-        ) 
+        protected AbstractHistogram(int64 lowest_discernible_value, int64 highest_trackable_value, int8 number_of_significant_value_digits) 
         {
            init(lowest_discernible_value, highest_trackable_value, number_of_significant_value_digits, 1.0, 0);
         }
@@ -183,6 +179,41 @@ namespace HdrHistogram {
             increment_total_count();
         }
 
+        // Coordinated omissions
+         /**
+         * Record a value in the histogram.
+         * <p>
+         * To compensate for the loss of sampled values when a recorded value is larger than the expected
+         * interval between value samples, Histogram will auto-generate an additional series of decreasingly-smaller
+         * (down to the expected_interval_between_value_samples) value records.
+         * <p>
+         * Note: This is a at-recording correction method, as opposed to the post-recording correction method provided
+         * by {@link #copy_corrected_for_coordinated_omission(long)}.
+         * The two methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
+         * for the same coordinated omission issue.
+         * <p>
+         * See notes in the description of the Histogram calls for an illustration of why this corrective behavior is
+         * important.
+         *
+         * @param value The value to record
+         * @param expected_interval_between_value_samples If expected_interval_between_value_samples is larger than 0, add
+         *                                           auto-generated value records as appropriate if value is larger
+         *                                           than expected_interval_between_value_samples
+         * @throws HdrError.INDEX_OUT_OF_BOUNDS (may throw) if value is exceeds highestTrackableValue
+         */
+        public void record_value_with_expected_interval(int64 value, int64 expected_interval_between_value_samples) throws HdrError {
+            record_single_value_with_expected_interval(value, expected_interval_between_value_samples);
+        }
+
+        private void record_single_value_with_expected_interval(int64 value, int64 expected_interval_between_value_samples) throws HdrError {
+            record_single_value(value);
+            if (expected_interval_between_value_samples <= 0) {
+                return;
+            }
+            for (int64 missing_value = value - expected_interval_between_value_samples; missing_value >= expected_interval_between_value_samples; missing_value -= expected_interval_between_value_samples) {
+                record_single_value(missing_value);
+            }
+        }
 
         /**
          * Control whether or not the histogram can auto-resize and auto-adjust its
