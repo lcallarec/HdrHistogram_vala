@@ -1,6 +1,7 @@
 namespace HdrHistogram { 
     
     public class Histogram : AbstractHistogram {
+        //TODO: make it private 
         internal int64 total_count;
         internal int64[] counts;
         internal int normalizing_index_offset;
@@ -10,8 +11,27 @@ namespace HdrHistogram {
             counts.resize(counts_array_length);
         }
 
+        /**
+         * Construct a histogram with the same range settings as a given source histogram,
+         * duplicating the source's start/end timestamps (but NOT its contents)
+         * @param source The source histogram to duplicate
+         */
+        public Histogram.from_source(AbstractHistogram source, bool allocate_counts_array = true) {
+            base.from_source(source);
+            if (allocate_counts_array) {
+                counts = new int64[counts_array_length];
+            }
+            word_size_in_bytes = 8;
+        }
+
         public override int64 get_total_count() {
             return total_count;
+        }
+
+        public override AbstractHistogram copy_corrected_for_coordinated_omission(int64 expected_interval_between_value_samples) {
+            Histogram copy = new Histogram.from_source(this);
+            copy.add_while_correcting_for_coordinated_omission(this, expected_interval_between_value_samples);
+            return copy;
         }
 
         internal override void clear_counts() {
@@ -29,6 +49,10 @@ namespace HdrHistogram {
 
         internal override void add_to_count_at_index(int index, int64 value) {
             counts[normalize_index(index, normalizing_index_offset, counts_array_length)] += value;
+        }
+
+        internal override void add_to_total_count(int64 value) {
+            total_count += value;
         }
 
         internal override void increment_count_at_index(int index) throws HdrError {
