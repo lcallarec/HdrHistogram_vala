@@ -441,5 +441,20 @@ namespace HdrHistogram {
             assert(corrected_histogram.get_min_non_zero_value() == 107);
             assert(corrected_histogram.get_max_value() == 207);
         });
+
+        Test.add_func("/HdrHistogram/Histogram/record_value_with_expected_interval#generate_values_in_a_new_histogram_with_higher_interval", () => {
+            // given
+            var histogram = new Histogram(1, 1024, 3);
+            histogram.record_value(207);
+            histogram.record_value(207);
+
+            // when
+            var corrected_histogram = histogram.copy_corrected_for_coordinated_omission(1000);
+
+            // then
+            assert(corrected_histogram.get_total_count() == 2);
+            assert(corrected_histogram.get_min_non_zero_value() == 207);
+            assert(corrected_histogram.get_max_value() == 207);
+        });
     }
 }
