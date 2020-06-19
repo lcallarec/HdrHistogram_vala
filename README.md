@@ -21,7 +21,7 @@ This is still WIP, ready soon !
 - [x] Encode & compress histogram
 - [x] Decode uncompressed histograms
 - [x] Decode compressed histograms
-- [ ] Corrected coordinated omissions
+- [x] Corrected coordinated omissions
 - [ ] Add histograms
 - [ ] Substract histograms
 - [x] Iterate over percentiles
