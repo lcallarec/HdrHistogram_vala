@@ -456,5 +456,58 @@ namespace HdrHistogram {
             assert(corrected_histogram.get_min_non_zero_value() == 207);
             assert(corrected_histogram.get_max_value() == 207);
         });
+
+        //Add historgram
+        Test.add_func("/HdrHistogram/Histogram/add#histograms_of_same_size", () => {
+            //given
+            var histogram = new Histogram(1, 1024, 3);
+            var histogram2 = new Histogram(1, 1024, 3);
+
+            histogram.record_value(500);
+            histogram2.record_value(700);
+
+            //when
+            histogram.add(histogram2);
+
+            //then
+            assert(histogram.get_total_count() == 2);
+            assert(histogram.get_mean() == 600);
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/add#histograms_of_different_size", () => {
+            // given
+            var histogram = new Histogram(1, int64.MAX, 2);
+            var histogram2 = new Histogram(1, 1024, 2);
+
+            histogram.record_value(42000);
+            histogram2.auto_resize = true;
+            histogram2.record_value(1000);
+
+            // when
+            histogram.add(histogram2);
+
+            // then
+            assert(histogram.get_total_count() == 2);
+            int64 mean = (int64) histogram.get_mean() / 100;
+            assert(mean == 215);
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/add#histograms_of_different_size_and_precision", () => {
+            // given
+            var histogram = new Histogram(1, int64.MAX, 2);
+            var histogram2 = new Histogram(1, 1024, 3);
+
+            histogram.record_value(42000);
+            histogram2.auto_resize = true;
+            histogram2.record_value(1000);
+
+            // when
+            histogram.add(histogram2);
+
+            // then
+            assert(histogram.get_total_count() == 2);
+            int64 mean = (int64) histogram.get_mean() / 100;
+            assert(mean == 215);
+        });
     }
 }

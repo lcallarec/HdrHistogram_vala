@@ -98,7 +98,7 @@ namespace HdrHistogram {
         internal int64 sub_bucket_mask;
 
         /**
-         * Lowest unitMagnitude bits are set
+         * Lowest unit_magnitude bits are set
          */
         int64 unit_magnitude_mask;  
 
@@ -176,7 +176,7 @@ namespace HdrHistogram {
             var largest_value_with_single_unit_resolution = 2 * (int64) Math.pow(10, number_of_significant_value_digits);
             
             
-            // We need to maintain power-of-two subBucketCount (for clean direct indexing) that is large enough to
+            // We need to maintain power-of-two sub_bucket_count (for clean direct indexing) that is large enough to
             // provide unit resolution to at least largest_value_with_single_unit_resolution. So figure out
             // largest_value_with_single_unit_resolution's nearest power-of-two (rounded up), and use that:            
             var sub_bucket_count_magnitude = (int) Math.ceil(Math.log(largest_value_with_single_unit_resolution) / Math.log(2));
@@ -228,6 +228,17 @@ namespace HdrHistogram {
             add_to_total_count(count);
         }
 
+         /**
+         * Record a value in the histogram (adding to the value's current count)
+         *
+         * @param value The value to be recorded
+         * @param count The number of occurrences of this value to record
+         * @throws HdrError (may throw) if value is exceeds highest_trackable_value
+         */
+        public void record_value_with_count(int64 value, int64 count) throws HdrError {
+            record_count_at_value(count, value);
+        }
+
         // Coordinated omissions
          /**
          * Record a value in the histogram.
@@ -248,7 +259,7 @@ namespace HdrHistogram {
          * @param expected_interval_between_value_samples If expected_interval_between_value_samples is larger than 0, add
          *                                           auto-generated value records as appropriate if value is larger
          *                                           than expected_interval_between_value_samples
-         * @throws HdrError.INDEX_OUT_OF_BOUNDS (may throw) if value is exceeds highestTrackableValue
+         * @throws HdrError.INDEX_OUT_OF_BOUNDS (may throw) if value is exceeds highest_trackable_value
          */
         public void record_value_with_expected_interval(int64 value, int64 expected_interval_between_value_samples) throws HdrError {
             record_single_value_with_expected_interval(value, expected_interval_between_value_samples);
@@ -275,6 +286,64 @@ namespace HdrHistogram {
             }
         }
 
+        //ADD
+         /**
+     * Add the contents of another histogram to this one.
+     * <p>
+     * As part of adding the contents, the start/end timestamp range of this histogram will be
+     * extended to include the start/end timestamp range of the other histogram.
+     *
+     * @param otherHistogram The other histogram.
+     * @throws ArrayIndexOutOfBoundsException (may throw) if values in fromHistogram's are
+     * higher than highest_trackable_value.
+     */
+    public void add(AbstractHistogram other_histogram) throws HdrError {
+        int64 highest_recordable_value = highest_equivalent_value(value_from_index(counts_array_length - 1));
+        if (highest_recordable_value < other_histogram.get_max_value()) {
+            if (!is_auto_resize()) {
+                throw new HdrError.INDEX_OUT_OF_BOUNDS("The other histogram includes values that do not fit in this histogram's range.");
+            }
+            resize(other_histogram.get_max_value());
+        }
+        if (bucket_count == other_histogram.bucket_count &&
+            sub_bucket_count == other_histogram.sub_bucket_count &&
+            unit_magnitude == other_histogram.unit_magnitude &&
+            get_normalizing_index_offset() == other_histogram.get_normalizing_index_offset()) {
+                //&& !(other_histogram instanceof ConcurrentHistogram) ) {
+            // Counts arrays are of the same length and meaning, so we can just iterate and add directly:
+            int64 observed_other_total_count = 0;
+            for (int i = 0; i < other_histogram.counts_array_length; i++) {
+                int64 other_count = other_histogram.get_count_at_index(i);
+                if (other_count > 0) {
+                    add_to_count_at_index(i, other_count);
+                    observed_other_total_count += other_count;
+                }
+            }
+            set_total_count(get_total_count() + observed_other_total_count);
+            updated_max_value(int64.max(get_max_value(), other_histogram.get_max_value()));
+            update_min_non_zero_value(int64.min(get_min_non_zero_value(), other_histogram.get_min_non_zero_value()));
+        } else {
+            // Arrays are not a direct match (or the other could change on the fly in some valid way),
+            // so we can't just stream through and add them. Instead, go through the array and add each
+            // non-zero value found at it's proper value:
+
+            // Do max value first, to avoid max value updates on each iteration:
+            int other_max_index = other_histogram.counts_array_index(other_histogram.get_max_value());
+            int64 other_count = other_histogram.get_count_at_index(other_max_index);
+            record_value_with_count(other_histogram.value_from_index(other_max_index), other_count);
+
+            // Record the remaining values, up to but not including the max value:
+            for (int i = 0; i < other_max_index; i++) {
+                other_count = other_histogram.get_count_at_index(i);
+                if (other_count > 0) {
+                    record_value_with_count(other_histogram.value_from_index(i), other_count);
+                }
+            }
+        }
+        set_start_time_stamp(int64.min(start_time_stamp_msec, other_histogram.start_time_stamp_msec));
+        set_end_time_stamp(int64.max(end_time_stamp_msec, other_histogram.end_time_stamp_msec));
+    }
+
         /**
          * Add the contents of another histogram to this one, while correcting the incoming data for coordinated omission.
          * <p>
@@ -284,7 +353,7 @@ namespace HdrHistogram {
          * in the current histogram that is larger than the expectedIntervalBetweenValueSamples.
          *
          * Note: This is a post-recording correction method, as opposed to the at-recording correction method provided
-         * by {@link #recordValueWithExpectedInterval(long, long) recordValueWithExpectedInterval}. The two
+         * by {@link #recordValueWithExpectedInterval(int64, int64) recordValueWithExpectedInterval}. The two
          * methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
         * for the same coordinated omission issue.
         * by
@@ -292,11 +361,11 @@ namespace HdrHistogram {
         * See notes in the description of the Histogram calls for an illustration of why this corrective behavior is
         * important.
         *
-        * @param otherHistogram The other histogram. highestTrackableValue and largestValueWithSingleUnitResolution must match.
+        * @param otherHistogram The other histogram. highest_trackable_value and largestValueWithSingleUnitResolution must match.
         * @param expected_interval_between_value_samples If expected_interval_between_value_samples is larger than 0, add
         *                                           auto-generated value records as appropriate if value is larger
         *                                           than expected_interval_between_value_samples
-        * @throws ArrayIndexOutOfBoundsException (may throw) if values exceed highestTrackableValue
+        * @throws ArrayIndexOutOfBoundsException (may throw) if values exceed highest_trackable_value
         */
         public void add_while_correcting_for_coordinated_omission(AbstractHistogram other_histogram, int64 expected_interval_between_value_samples) {
             AbstractHistogram to_histogram = this;
@@ -322,7 +391,7 @@ namespace HdrHistogram {
          * in the current histogram that is larger than the expectedIntervalBetweenValueSamples.
          *
          * Note: This is a post-correction method, as opposed to the at-recording correction method provided
-         * by {@link #record_value_with_expected_interval(long, long) record_value_with_expected_interval}. The two
+         * by {@link #record_value_with_expected_interval(int64, int64) record_value_with_expected_interval}. The two
          * methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
          * for the same coordinated omission issue.
          * by
@@ -336,6 +405,10 @@ namespace HdrHistogram {
          * @return a copy of this histogram, corrected for coordinated omission.
          */
         public abstract AbstractHistogram copy_corrected_for_coordinated_omission(int64 expected_interval_between_value_samples);
+
+        public bool is_auto_resize() {
+            return auto_resize;
+        }
 
         /**
          * Control whether or not the histogram can auto-resize and auto-adjust its
@@ -393,13 +466,13 @@ namespace HdrHistogram {
 
 
         private int counts_array_index_from_bucket(int bucket_index, int sub_bucket_index) {
-            //  assert(subBucketIndex < subBucketCount);
+            //  assert(subBucketIndex < sub_bucket_count);
             //  assert(bucketIndex == 0 || (subBucketIndex >= subBucketHalfCount));
-            // Calculate the index for the first entry that will be used in the bucket (halfway through subBucketCount).
-            // For bucketIndex 0, all subBucketCount entries may be used, but bucketBaseIndex is still set in the middle.
+            // Calculate the index for the first entry that will be used in the bucket (halfway through sub_bucket_count).
+            // For bucketIndex 0, all sub_bucket_count entries may be used, but bucketBaseIndex is still set in the middle.
             int bucket_base_index = (bucket_index + 1) << sub_bucket_half_count_magnitude;
             // Calculate the offset in the bucket. This subtraction will result in a positive value in all buckets except
-            // the 0th bucket (since a value in that bucket may be less than half the bucket's 0 to subBucketCount range).
+            // the 0th bucket (since a value in that bucket may be less than half the bucket's 0 to sub_bucket_count range).
             // However, this works out since we give bucket 0 twice as much space.
             int offset_in_bucket = sub_bucket_index - sub_bucket_half_count;
             // The following is the equivalent of ((subBucketIndex  - subBucketHalfCount) + bucketBaseIndex;
@@ -443,8 +516,8 @@ namespace HdrHistogram {
         }
 
         internal int get_buckets_needed_to_cover_value(int64 value) {
-            // Shift won't overflow because subBucketMagnitude + unitMagnitude <= 62.
-            // the k'th bucket can express from 0 * 2^k to subBucketCount * 2^k in units of 2^k
+            // Shift won't overflow because subBucketMagnitude + unit_magnitude <= 62.
+            // the k'th bucket can express from 0 * 2^k to sub_bucket_count * 2^k in units of 2^k
             int64 smallest_untrackable_value = ((int64) sub_bucket_count) << unit_magnitude;
 
             // always have at least 1 bucket
@@ -452,7 +525,7 @@ namespace HdrHistogram {
             while (smallest_untrackable_value <= value) {
                 if (smallest_untrackable_value > (int64.MAX / 2)) {
                     // next shift will overflow, meaning that bucket could represent values up to ones greater than
-                    // Long.MAX_VALUE, so it's the last bucket
+                    // int64.MAX_VALUE, so it's the last bucket
                     return buckets_needed + 1;
                 }
                 smallest_untrackable_value <<= 1;
@@ -978,8 +1051,8 @@ namespace HdrHistogram {
                 if (count < 0) {
                     //  throw new RuntimeException("Cannot encode histogram containing negative counts (" +
                     //          count + ") at index " + src_index + ", corresponding the value range [" +
-                    //          lowestEquivalentValue(valueFromIndex(src_index)) + "," +
-                    //          nextNonEquivalentValue(valueFromIndex(src_index)) + ")");
+                    //          lowestEquivalentValue(value_from_index(src_index)) + "," +
+                    //          nextNonEquivalentValue(value_from_index(src_index)) + ")");
                 }
                 // Count trailing 0s (which follow this count):
                 int64 zeros_count = 0;
