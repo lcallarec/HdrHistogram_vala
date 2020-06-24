@@ -22,7 +22,7 @@ This is still WIP, ready soon !
 - [x] Decode uncompressed histograms
 - [x] Decode compressed histograms
 - [x] Corrected coordinated omissions
-- [ ] Add histograms
+- [x] Add histograms
 - [ ] Substract histograms
 - [x] Iterate over percentiles
 - [ ] Iterate LinearBucketValues
