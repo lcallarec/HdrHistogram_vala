@@ -293,7 +293,7 @@ namespace HdrHistogram {
      * As part of adding the contents, the start/end timestamp range of this histogram will be
      * extended to include the start/end timestamp range of the other histogram.
      *
-     * @param otherHistogram The other histogram.
+     * @param other_histogram The other histogram.
      * @throws ArrayIndexOutOfBoundsException (may throw) if values in fromHistogram's are
      * higher than highest_trackable_value.
      */
@@ -344,6 +344,39 @@ namespace HdrHistogram {
         set_end_time_stamp(int64.max(end_time_stamp_msec, other_histogram.end_time_stamp_msec));
     }
 
+     /**
+     * Subtract the contents of another histogram from this one.
+     * <p>
+     * The start/end timestamps of this histogram will remain unchanged.
+     *
+     * @param other_histogram The other histogram.
+     * @throws ArrayIndexOutOfBoundsException (may throw) if values in other_histogram's are higher than highestTrackableValue.
+     *
+     */
+    public void subtract(AbstractHistogram other_histogram) throws HdrError {
+            //TODO throws ArrayIndexOutOfBoundsException, IllegalArgumentException {
+        if (highest_equivalent_value(other_histogram.get_max_value()) >
+                highest_equivalent_value(value_from_index(this.counts_array_length - 1))) {
+            //  TODO throw new IllegalArgumentException(
+            //          "The other histogram includes values that do not fit in this histogram's range.");
+        }
+        for (int i = 0; i < other_histogram.counts_array_length; i++) {
+            int64 other_count = other_histogram.get_count_at_index(i);
+            if (other_count > 0) {
+                int64 other_value = other_histogram.value_from_index(i);
+                if (get_count_at_value(other_value) < other_count) {
+                    //TODO throw new IllegalArgumentException("other_histogram count (" + other_count + ") at value " +
+                            //other_value + " is larger than this one's (" + get_count_at_value(other_value) + ")");
+                }
+                record_value_with_count(other_value, -other_count);
+            }
+        }
+        // With subtraction, the max and minNonZero values could have changed:
+        if ((get_count_at_value(get_max_value()) <= 0) || get_count_at_value(get_min_non_zero_value()) <= 0) {
+            establish_internal_tacking_values();
+        }
+    }
+
         /**
          * Add the contents of another histogram to this one, while correcting the incoming data for coordinated omission.
          * <p>
@@ -361,7 +394,7 @@ namespace HdrHistogram {
         * See notes in the description of the Histogram calls for an illustration of why this corrective behavior is
         * important.
         *
-        * @param otherHistogram The other histogram. highest_trackable_value and largestValueWithSingleUnitResolution must match.
+        * @param other_histogram The other histogram. highest_trackable_value and largestValueWithSingleUnitResolution must match.
         * @param expected_interval_between_value_samples If expected_interval_between_value_samples is larger than 0, add
         *                                           auto-generated value records as appropriate if value is larger
         *                                           than expected_interval_between_value_samples
@@ -793,7 +826,7 @@ namespace HdrHistogram {
          * @return The total count of values recorded in the histogram within the value range that is
          * {@literal >=} lowest_equivalent_value(<i>value</i>) and {@literal <=} highest_equivalent_value(<i>value</i>)
          */
-        public int64 getCountAtValue(int64 value) throws HdrError.INDEX_OUT_OF_BOUNDS {
+        public int64 get_count_at_value(int64 value) throws HdrError.INDEX_OUT_OF_BOUNDS {
             int index = int.min(int.max(0, counts_array_index(value)), (counts_array_length - 1));
             return get_count_at_index(index);
         }
@@ -1195,7 +1228,7 @@ namespace HdrHistogram {
             return dst_index; // this is the destination length
         }
 
-        internal void establish_internal_tacking_values(int length_to_cover) {
+        internal void establish_internal_tacking_values(int length_to_cover = counts_array_length) {
             reset_max_value(0);
             reset_min_non_zero_value(int64.MAX);
             int max_index = -1;

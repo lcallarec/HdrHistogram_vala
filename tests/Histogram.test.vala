@@ -509,5 +509,25 @@ namespace HdrHistogram {
             int64 mean = (int64) histogram.get_mean() / 100;
             assert(mean == 215);
         });
+
+        //SUBBTRACT
+        Test.add_func("/HdrHistogram/Histogram/subtract", () => {
+            //given
+            var histogram = new Histogram(1, 1024, 5);
+            var histogram2 = new Histogram(1, int64.MAX, 5);
+
+            histogram.auto_resize = true;
+            histogram.record_value(1000);
+            histogram2.record_value(42000);
+
+            var dump = histogram.encode_compressed();
+
+            // when
+            histogram.add(histogram2);
+            histogram.subtract(histogram2);
+
+            // then
+            assert(histogram.encode_compressed() == dump);
+        });
     }
 }
