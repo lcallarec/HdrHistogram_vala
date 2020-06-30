@@ -27,7 +27,7 @@ This is still WIP, ready soon !
 - [x] Iterate over percentiles
 - [ ] Iterate LinearBucketValues
 - [ ] Iterate LogarithmicBucketValues
-- [ ] Iterate RecordedValues
+- [x] Iterate RecordedValues
 - [ ] Iterate AllValues
 - [ ] Log reader
 - [ ] Log writer
