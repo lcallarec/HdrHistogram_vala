@@ -23,6 +23,7 @@ namespace HdrHistogram {
 
             //then
             stdout.printf("(string) decompressed %s\n", (string) decompressed);
+            stdout.flush();
             assert("ABCD" == (string) decompressed);
         });
     }
