@@ -23,6 +23,6 @@ jobs:
           meson build -Ddebug=true -Db_coverage=true
           ninja -C build
       - name: Run tests
-        run: meson test -C build || cat ./build/meson-logs/testlog.txt && exit 1
+        run: meson test -C build || (cat ./build/meson-logs/testlog.txt && exit 1)
       - name: Send coverage report
         run: bash <(curl -s https://codecov.io/bash)        
