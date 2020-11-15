@@ -1,30 +1,16 @@
 namespace HdrHistogram { 
 
     void register_zlib() {
-        Test.add_func("/HdrHistogram/Zlib/compress", () => {
+        Test.add_func("/HdrHistogram/Zlib", () => {
             //given
-            string input = "ABCD";
+            string input = "ABCDE";
 
             //when
             var compressed = Zlib.compress(input.data);
- 
+            var decompressed = Zlib.decompress(compressed);
+            
             //expect
-            var encoded_compressed = Base64.encode((uchar[]) compressed);
-
-            assert(encoded_compressed == "eJxzdHJ2AQACmAEL");
-        });
-
-        Test.add_func("/HdrHistogram/Compressor/decompress", () => {
-            //given
-            var input = (uint8[]) Base64.decode("eJxzdHJ2AQACmAEL");
-
-            //when
-            var decompressed = Zlib.decompress(input);
-
-            //then
-            stdout.printf("(string) decompressed %s\n", (string) decompressed);
-            stdout.flush();
-            assert("ABCD" == (string) decompressed);
+            assert((string) decompressed == input);
         });
     }
 }
