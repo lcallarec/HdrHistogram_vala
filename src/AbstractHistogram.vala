@@ -12,7 +12,7 @@ namespace HdrHistogram {
     /**
      * Unlike the Java reference implementation, there's no need to separate AbstractHistogramBase 
      * from AbstractHistogram. But keeping vala implementation as much as possible in sync with reference implementation
-     * helps for adding features and debuging.
+     * helps for adding features and debugging.
      */
     public abstract class AbstractHistogramBase {
         
@@ -911,7 +911,7 @@ namespace HdrHistogram {
 
         /**
          * Set the tag string associated with this histogram
-         * @param tag the tag string to assciate with this histogram
+         * @param tag the tag string to associate with this histogram
          */
         public void set_tag(string tag) {
             this.tag = tag;

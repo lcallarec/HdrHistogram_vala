@@ -15,7 +15,6 @@ This is still WIP, ready soon !
 - [x] Get std deviation
 - [x] Get percentiles
 - [x] Output percentile distribution
-- [ ] Java AtomicLong > Vala counterpart
 - [x] Handle concurrent accesses in RecordedValuesIterator
 - [x] Encode histogram
 - [x] Encode & compress histogram
@@ -26,10 +25,14 @@ This is still WIP, ready soon !
 - [x] Substract histograms
 - [x] Iterate over percentiles
 - [x] Iterate RecordedValues
-- [ ] Log reader
-- [ ] Log writer
+- [x] Tags
 - [ ] int8 histogram
 - [ ] int16 histogram
 - [ ] int32 histogram
 - [ ] Packed histogram
 - [ ] Decode all kinds of histograms
+
+Not likely to be done :
+- [ ] Java AtomicLong > Vala counterpart
+- [ ] Log reader
+- [ ] Log writer
