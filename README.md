@@ -27,7 +27,7 @@ This is still WIP, ready soon !
 - [x] Iterate RecordedValues
 - [x] Tags
 - [x] uint8 histogram
-- [ ] uint16 histogram
+- [x] uint16 histogram
 - [ ] uint32 histogram
 - [ ] Real uint64 histogram (not just int64 as java version)
 - [ ] Packed histogram

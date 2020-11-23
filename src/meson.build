@@ -6,6 +6,7 @@ sources = files(
     'Bytes.vala',
     'Histogram.vala',
     'Int8Histogram.vala',
+    'Int16Histogram.vala',
     'HistogramIterationValue.vala',
     'Int64.vala',
     'Iterable.vala',
