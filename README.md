@@ -26,9 +26,10 @@ This is still WIP, ready soon !
 - [x] Iterate over percentiles
 - [x] Iterate RecordedValues
 - [x] Tags
-- [ ] int8 histogram
-- [ ] int16 histogram
-- [ ] int32 histogram
+- [x] uint8 histogram
+- [ ] uint16 histogram
+- [ ] uint32 histogram
+- [ ] Real uint64 histogram (not just int64 as java version)
 - [ ] Packed histogram
 - [ ] Decode all kinds of histograms
 

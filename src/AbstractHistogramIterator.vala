@@ -104,7 +104,7 @@ namespace HdrHistogram {
                 (total_count_to_current_index > array_total_count)) {
                 throw new HdrError.CONCURRENT_MODIFICATION_EXCEPTION("In AbstractHistogramIterator.has_next() histogram.get_total_count() != array_total_count");
             }
-            throw new HdrError.NO_SUCH_ELEMENT("In AbstractHistogramIterator.next()");
+            throw new HdrError.NO_SUCH_ELEMENT("In AbstractHistogramIterator.next() : NO_SUCH_ELEMENT");
         }
 
         /**

@@ -6,7 +6,8 @@ namespace HdrHistogram {
         CONCURRENT_MODIFICATION_EXCEPTION,
         NO_SUCH_ELEMENT,
         UNSUPPORTED_OPERATION,
-        DECODE_NO_VALID_COOKIE
+        DECODE_NO_VALID_COOKIE,
+        INTEGER_OVERFLOW
     }
 
     /**
@@ -207,6 +208,7 @@ namespace HdrHistogram {
 
         public void record_single_value(int64 value) throws HdrError {
             var counts_index = counts_array_index(value);
+            stdout.printf("counts_index = %d\n", counts_index);
             try {
                 increment_count_at_index(counts_index);
             } catch (HdrError.INDEX_OUT_OF_BOUNDS e) {
