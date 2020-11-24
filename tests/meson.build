@@ -6,6 +6,7 @@ test_sources = [
     'Histogram.test.vala', 
     'Int8Histogram.test.vala',
     'Int16Histogram.test.vala',
+    'Int32Histogram.test.vala',
     'Int64.test.vala',
     'ZigZag.test.vala'
 ]

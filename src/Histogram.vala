@@ -46,7 +46,7 @@ namespace HdrHistogram {
             total_count++;
         }
 
-        internal override void add_to_count_at_index(int index, int64 value) {
+        internal override void add_to_count_at_index(int index, int64 value) throws HdrError {
             counts[normalize_index(index, normalizing_index_offset, counts_array_length)] += value;
         }
 

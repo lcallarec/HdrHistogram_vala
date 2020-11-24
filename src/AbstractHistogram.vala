@@ -109,7 +109,7 @@ namespace HdrHistogram {
         // Abstract methods
         internal abstract void increment_count_at_index(int index) throws HdrError;
         internal abstract void resize(int64 new_highest_trackable_value);
-        internal abstract void add_to_count_at_index(int index, int64 value);
+        internal abstract void add_to_count_at_index(int index, int64 value) throws HdrError;
         internal abstract void increment_total_count();
         internal abstract int64 get_count_at_index(int index) throws HdrError.INDEX_OUT_OF_BOUNDS;
         internal abstract void clear_counts();
