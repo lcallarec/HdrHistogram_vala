@@ -5,12 +5,16 @@ namespace HdrHistogram {
             //given
             string input = "ABCDE";
 
-            //when
-            var compressed = Zlib.compress(input.data);
-            var decompressed = Zlib.decompress(compressed);
-            
-            //expect
-            assert((string) decompressed == input);
+            try {
+                //when
+                var compressed = Zlib.compress(input.data);
+                var decompressed = Zlib.decompress(compressed);
+                //then
+                assert((string) decompressed == input);
+                
+            } catch (Error e) {
+                assert_not_reached();
+            }
         });
     }
 }
