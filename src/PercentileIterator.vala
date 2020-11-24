@@ -36,7 +36,7 @@ namespace HdrHistogram {
             reset_histogram(histogram, percentile_ticks_per_half_distance);
         }
 
-        public bool has_next() throws HdrError {
+        public bool has_next() {
             if (base.has_next())
                 return true;
             // We want one additional last step to 100%
