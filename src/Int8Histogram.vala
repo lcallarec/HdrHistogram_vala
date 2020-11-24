@@ -47,7 +47,13 @@ namespace HdrHistogram {
         }
 
         internal override void add_to_count_at_index(int index, int64 value) throws HdrError {
-            counts[normalize_index(index, normalizing_index_offset, counts_array_length)] += (uint8) value;
+            var normalized_index = normalize_index(index, normalizing_index_offset, counts_array_length);
+            var currentCount = counts[normalized_index];
+            var newCount = (int64) (currentCount + value);
+            if (currentCount + value > uint8.MAX) {
+                throw new HdrError.INTEGER_OVERFLOW("Integer overflow error : %lld would overflow uint8.MAX value".printf(newCount));
+            }
+            counts[normalized_index] = (uint8) newCount;
         }
 
         internal override void add_to_total_count(int64 value) {
