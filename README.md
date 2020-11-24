@@ -29,7 +29,6 @@ This is still WIP, ready soon !
 - [x] uint8 histogram
 - [x] uint16 histogram
 - [x] uint32 histogram
-- [ ] Real uint64 histogram (not just int64 as java version)
 - [ ] Packed histogram
 - [ ] Decode all kinds of histograms
 
