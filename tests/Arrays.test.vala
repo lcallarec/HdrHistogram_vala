@@ -374,8 +374,6 @@ namespace HdrHistogram {
             var result = Arrays.Bytes.reverse(array1);
 
             //then
-            int64[] expected = {2, 1, 0};
-
             assert(result.length == 3);
         });
 

@@ -1021,8 +1021,6 @@ namespace HdrHistogram {
         }
 
         public ByteArray encode_into_byte_buffer() {
-            int64 max_value = get_max_value();
-            int relevant_length = counts_array_index(max_value) + 1;
             
             ByteArrayWriter writer = new ByteArrayWriter(ByteOrder.BIG_ENDIAN);
 
@@ -1047,7 +1045,6 @@ namespace HdrHistogram {
          * @return ByteArray the buffer
          */
         public ByteArray encode_into_compressed_byte_buffer(int compression_level = -1) {
-            int needed_capacity = get_needed_byte_buffer_capacity();
 
             var uncompressed_byte_array = encode_into_byte_buffer();
     
@@ -1108,10 +1105,7 @@ namespace HdrHistogram {
             return encoder.to_byte_array();
         }
 
-
         public static AbstractHistogram decode_from_compressed_byte_buffer(ByteArray compressed_buffer, int64 min_bar_for_highest_trackable_value) {
-
-            int initialTargetPosition = 0;
 
             var reader = new ByteArrayReader(compressed_buffer, ByteOrder.BIG_ENDIAN);
 
