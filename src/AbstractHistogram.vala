@@ -483,7 +483,7 @@ namespace HdrHistogram {
             this.min_non_zero_value = (min_non_zero_value == int64.MAX) ? min_non_zero_value : internal_value;
         }
 
-        private void handle_record_exception(int64 count, int64 value, HdrError e) throws HdrError.INDEX_OUT_OF_BOUNDS {
+        private void handle_record_exception(int64 count, int64 value, HdrError e) throws HdrError {
             if (!auto_resize) {
                 throw new HdrError.INDEX_OUT_OF_BOUNDS(@"value $value outside of histogram covered range. Caused by: " + e.message);
             }
