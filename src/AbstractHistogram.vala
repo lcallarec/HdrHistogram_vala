@@ -1105,7 +1105,7 @@ namespace HdrHistogram {
             return encoder.to_byte_array();
         }
 
-        public static AbstractHistogram decode_from_compressed_byte_buffer(ByteArray compressed_buffer, int64 min_bar_for_highest_trackable_value) {
+        protected static AbstractHistogram _decode_from_compressed_byte_buffer(Type histogram_type, ByteArray compressed_buffer, int64 min_bar_for_highest_trackable_value) {
 
             var reader = new ByteArrayReader(compressed_buffer, ByteOrder.BIG_ENDIAN);
 
@@ -1123,13 +1123,10 @@ namespace HdrHistogram {
             int length_of_compressed_contents = reader.read_int32();
             var header_buffer = Zlib.decompress(reader.take(length_of_compressed_contents));
             
-            var histogram = decode_from_byte_buffer(new ByteArray.take(header_buffer), min_bar_for_highest_trackable_value);
-            
-            return histogram;
-
+            return _decode_from_byte_buffer(histogram_type, new ByteArray.take(header_buffer), min_bar_for_highest_trackable_value);
         }
 
-        public static AbstractHistogram decode_from_byte_buffer(ByteArray buffer, int64 min_bar_for_highest_trackable_value) {
+        protected static AbstractHistogram _decode_from_byte_buffer(Type histogram_type, ByteArray buffer, int64 min_bar_for_highest_trackable_value) {
             var reader = new ByteArrayReader(buffer, ByteOrder.BIG_ENDIAN);
             int cookie = reader.read_int32();
             print("cookie := %d\n", cookie);
@@ -1152,14 +1149,13 @@ namespace HdrHistogram {
 
             highest_trackable_value = int64.max(highest_trackable_value, min_bar_for_highest_trackable_value);
 
-            AbstractHistogram histogram;
-
             // Construct histogram:
-            histogram = new Histogram(
+            var histogram = Object.new(
+                histogram_type,
                 lowest_trackable_unit_value,
                 highest_trackable_value,
                 number_of_significant_value_digits
-            );
+            ) as AbstractHistogram;
             histogram.set_integer_to_double_value_conversion_ratio(integer_to_double_value_conversion_ratio);
             histogram.set_normalizing_index_offset(normalizing_index_offset);
             

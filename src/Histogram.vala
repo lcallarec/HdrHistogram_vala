@@ -33,6 +33,14 @@ namespace HdrHistogram {
             return copy;
         }
 
+        public static Histogram decode_from_byte_buffer(ByteArray buffer, int64 min_bar_for_highest_trackable_value) {
+            return _decode_from_byte_buffer(typeof(Histogram), buffer, min_bar_for_highest_trackable_value) as Histogram;
+        }
+
+        public static Histogram decode_from_compressed_byte_buffer(ByteArray compressed_buffer, int64 min_bar_for_highest_trackable_value) {
+            return _decode_from_compressed_byte_buffer(typeof(Histogram), compressed_buffer, min_bar_for_highest_trackable_value) as Histogram;
+        }
+
         internal override void clear_counts() {
             Arrays.Int64.fill(counts, 0, counts_array_length, 0);
             total_count = 0;
