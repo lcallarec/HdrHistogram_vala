@@ -85,7 +85,7 @@ histogram.get_total_count(); // 6
 ## Dump
 
 ```vala
-histogram.output_percentile_distribution(output, 5, 1);
+histogram.output_percentile_distribution(output_stream, 5, 1);
 ```
 
 ## Coordinated omissions
