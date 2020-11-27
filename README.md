@@ -82,7 +82,32 @@ histogram.record_value(578);
 histogram.get_total_count(); // 6
 ```
 
-## Dump
+## Encoding / decoding
+
+A histogram can either be encoded as a GLib.ByteArray, for further processing on the same machine, or serialized as base64 string. Both outputs can be compressed via ZLib. Encoding and compression are lossless.
+
+### Encoding
+
+```vala
+histogram.encode(); // Returns a base64 string representation of the histogram
+histogram.encode_compressed(int compression_level = -1) // Returns a base64 string representation of a compressed histogram
+
+histogram.encode_into_byte_buffer(); // Returns a non-compressed GLib.ByteArray representation of the histogram
+histogram.encode_into_compressed_byte_buffer(int compression_level = -1)  // Returns a compressed GLib.ByteArray representation of the histogram
+```
+
+### Decoding
+
+Decoding an histgram will create a clone of the original. Decoding a histogram of a greater bucket size in a smaller one may fails if bbucket counts can't be stored (ex: Decoding an Histogram (int64) in a Int16Histogram).
+
+```vala
+Int16Histogram.decode(histogram); // Decode the serialized histogram in a new Int16Histogram
+Int32Histogram.decode_compressed(histogram); // Decode the serialized compressed histogram in a fresh Int32Histogram
+Histogram.decode_from_byte_buffer(buffer); Decode the byte array representation in a new Histogram
+Histogram.decode_from_compressed_byte_buffer(compressed_buffer); // Decode the compressed byte array representation in a new Histogram
+```
+
+## Dump in a FileStream
 
 ```vala
 histogram.output_percentile_distribution(output_stream, 5, 1);
@@ -125,8 +150,8 @@ This is still WIP, ready soon !
 - [x] uint8 histogram
 - [x] uint16 histogram
 - [x] uint32 histogram
+- [x] Decode all kinds of histograms
 - [ ] Packed histogram
-- [ ] Decode all kinds of histograms
 
 Not likely to be done :
 - [ ] Java AtomicLong > Vala counterpart

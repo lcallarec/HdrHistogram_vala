@@ -33,12 +33,20 @@ namespace HdrHistogram {
             return copy;
         }
 
-        public static Histogram decode_from_byte_buffer(ByteArray buffer, int64 min_bar_for_highest_trackable_value) {
-            return _decode_from_byte_buffer(typeof(Histogram), buffer, min_bar_for_highest_trackable_value) as Histogram;
+        public static Histogram decode(string histogram) {
+            return _decode(typeof(Histogram), histogram) as Histogram;
         }
 
-        public static Histogram decode_from_compressed_byte_buffer(ByteArray compressed_buffer, int64 min_bar_for_highest_trackable_value) {
-            return _decode_from_compressed_byte_buffer(typeof(Histogram), compressed_buffer, min_bar_for_highest_trackable_value) as Histogram;
+        public static Histogram decode_compressed(string histogram) {
+            return _decode_compressed(typeof(Histogram), histogram) as Histogram;
+        }
+
+        public static Histogram decode_from_byte_buffer(ByteArray buffer) {
+            return _decode_from_byte_buffer(typeof(Histogram), buffer) as Histogram;
+        }
+
+        public static Histogram decode_from_compressed_byte_buffer(ByteArray compressed_buffer) {
+            return _decode_from_compressed_byte_buffer(typeof(Histogram), compressed_buffer) as Histogram;
         }
 
         internal override void clear_counts() {
@@ -55,7 +63,13 @@ namespace HdrHistogram {
         }
 
         internal override void add_to_count_at_index(int index, int64 value) throws HdrError {
-            counts[normalize_index(index, normalizing_index_offset, counts_array_length)] += value;
+            var normalized_index = normalize_index(index, normalizing_index_offset, counts_array_length);
+            var currentCount = counts[normalized_index];
+            var newCount = (uint64) (currentCount + value);
+            if (newCount > int64.MAX) {
+                throw new HdrError.INTEGER_OVERFLOW("Integer overflow error : %lld would overflow int64.MAX value".printf(newCount));
+            }
+            counts[normalized_index] = (uint8) newCount;
         }
 
         internal override void add_to_total_count(int64 value) {

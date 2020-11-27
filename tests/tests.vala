@@ -12,6 +12,7 @@ namespace HdrHistogram {
         register_int64();
         register_zig_zag_encoding();
         register_histogram();
+        register_histogram_encoding();
         register_int8_histogram();
         register_int16_histogram();
         register_int32_histogram();

@@ -27,6 +27,22 @@ namespace HdrHistogram {
             return total_count;
         }
 
+        public static Int8Histogram decode(string histogram) {
+            return _decode(typeof(Int8Histogram), histogram) as Int8Histogram;
+        }
+
+        public static Int8Histogram decode_compressed(string histogram) {
+            return _decode_compressed(typeof(Int8Histogram), histogram) as Int8Histogram;
+        }
+
+        public static Int8Histogram decode_from_byte_buffer(ByteArray buffer) {
+            return _decode_from_byte_buffer(typeof(Int8Histogram), buffer) as Int8Histogram;
+        }
+
+        public static Int8Histogram decode_from_compressed_byte_buffer(ByteArray compressed_buffer) {
+            return _decode_from_compressed_byte_buffer(typeof(Int8Histogram), compressed_buffer) as Int8Histogram;
+        }
+
         public override AbstractHistogram copy_corrected_for_coordinated_omission(int64 expected_interval_between_value_samples) {
             Histogram copy = new Histogram.from_source(this);
             copy.add_while_correcting_for_coordinated_omission(this, expected_interval_between_value_samples);
@@ -50,7 +66,7 @@ namespace HdrHistogram {
             var normalized_index = normalize_index(index, normalizing_index_offset, counts_array_length);
             var currentCount = counts[normalized_index];
             var newCount = (int64) (currentCount + value);
-            if (currentCount + value > uint8.MAX) {
+            if (newCount> uint8.MAX) {
                 throw new HdrError.INTEGER_OVERFLOW("Integer overflow error : %lld would overflow uint8.MAX value".printf(newCount));
             }
             counts[normalized_index] = (uint8) newCount;

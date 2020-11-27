@@ -7,7 +7,8 @@ namespace HdrHistogram {
         NO_SUCH_ELEMENT,
         UNSUPPORTED_OPERATION,
         DECODE_NO_VALID_COOKIE,
-        INTEGER_OVERFLOW
+        INTEGER_OVERFLOW,
+        UNKNOWN_HISTOGRAM_TYPE
     }
 
     /**
@@ -15,7 +16,7 @@ namespace HdrHistogram {
      * from AbstractHistogram. But keeping vala implementation as much as possible in sync with reference implementation
      * helps for adding features and debugging.
      */
-    public abstract class AbstractHistogramBase {
+    public abstract class AbstractHistogramBase : Object {
         
         internal bool auto_resize = false;
 
@@ -208,7 +209,6 @@ namespace HdrHistogram {
 
         public void record_single_value(int64 value) throws HdrError {
             var counts_index = counts_array_index(value);
-            stdout.printf("counts_index = %d\n", counts_index);
             try {
                 increment_count_at_index(counts_index);
             } catch (HdrError.INDEX_OUT_OF_BOUNDS e) {
@@ -1069,6 +1069,16 @@ namespace HdrHistogram {
             ByteArray buffer = encode_into_compressed_byte_buffer(compression_level);
             return Base64.encode((uchar[]) buffer.data);
         }
+        
+        public static AbstractHistogram _decode(Type histogram_type, string compressed_histogram) {
+            var bytes = Base64.decode(compressed_histogram);
+            return _decode_from_byte_buffer(histogram_type, new ByteArray.take(bytes));
+        }
+
+        public static AbstractHistogram _decode_compressed(Type histogram_type, string histogram) {
+            var bytes = Base64.decode(histogram);
+            return _decode_from_compressed_byte_buffer(histogram_type, new ByteArray.take(bytes));
+        }
 
         internal ByteArray create_bytes_from_counts_array() {
             int counts_limit = counts_array_index(max_value) + 1;
@@ -1080,12 +1090,7 @@ namespace HdrHistogram {
                 // V2 encoding format uses a ZigZag LEB128-64b9B encoded int64. Positive values are counts,
                 // while negative values indicate a repeat zero counts.
                 int64 count = get_count_at_index(src_index++);
-                if (count < 0) {
-                    //  throw new RuntimeException("Cannot encode histogram containing negative counts (" +
-                    //          count + ") at index " + src_index + ", corresponding the value range [" +
-                    //          lowestEquivalentValue(value_from_index(src_index)) + "," +
-                    //          nextNonEquivalentValue(value_from_index(src_index)) + ")");
-                }
+  
                 // Count trailing 0s (which follow this count):
                 int64 zeros_count = 0;
                 if (count == 0) {
@@ -1105,7 +1110,7 @@ namespace HdrHistogram {
             return encoder.to_byte_array();
         }
 
-        protected static AbstractHistogram _decode_from_compressed_byte_buffer(Type histogram_type, ByteArray compressed_buffer, int64 min_bar_for_highest_trackable_value) {
+        protected static AbstractHistogram _decode_from_compressed_byte_buffer(Type histogram_type, ByteArray compressed_buffer) {
 
             var reader = new ByteArrayReader(compressed_buffer, ByteOrder.BIG_ENDIAN);
 
@@ -1123,13 +1128,12 @@ namespace HdrHistogram {
             int length_of_compressed_contents = reader.read_int32();
             var header_buffer = Zlib.decompress(reader.take(length_of_compressed_contents));
             
-            return _decode_from_byte_buffer(histogram_type, new ByteArray.take(header_buffer), min_bar_for_highest_trackable_value);
+            return _decode_from_byte_buffer(histogram_type, new ByteArray.take(header_buffer));
         }
 
-        protected static AbstractHistogram _decode_from_byte_buffer(Type histogram_type, ByteArray buffer, int64 min_bar_for_highest_trackable_value) {
+        protected static AbstractHistogram _decode_from_byte_buffer(Type histogram_type, ByteArray buffer) {
             var reader = new ByteArrayReader(buffer, ByteOrder.BIG_ENDIAN);
             int cookie = reader.read_int32();
-            print("cookie := %d\n", cookie);
             if (get_cookie_base(cookie) == V2EncodingCookieBase) {
                 if (get_word_size_in_bytes_from_cookie(cookie) != V2maxWordSizeInBytes) {
                     throw new HdrError.DECODE_NO_VALID_COOKIE(
@@ -1147,15 +1151,43 @@ namespace HdrHistogram {
             var highest_trackable_value = reader.read_int64();
             var integer_to_double_value_conversion_ratio = reader.read_double();
 
-            highest_trackable_value = int64.max(highest_trackable_value, min_bar_for_highest_trackable_value);
+            AbstractHistogram histogram;
+            switch(histogram_type.name()) {
+                case "HdrHistogramHistogram":
+                    histogram = new Histogram(
+                        lowest_trackable_unit_value,
+                        highest_trackable_value,
+                        number_of_significant_value_digits
+                    );
+                    break;
 
-            // Construct histogram:
-            var histogram = Object.new(
-                histogram_type,
-                lowest_trackable_unit_value,
-                highest_trackable_value,
-                number_of_significant_value_digits
-            ) as AbstractHistogram;
+                case "HdrHistogramInt32Histogram":
+                    histogram = new Int32Histogram(
+                        lowest_trackable_unit_value,
+                        highest_trackable_value,
+                        number_of_significant_value_digits
+                    );
+                    break;
+
+                case "HdrHistogramInt16Histogram":
+                    histogram = new Int16Histogram(
+                        lowest_trackable_unit_value,
+                        highest_trackable_value,
+                        number_of_significant_value_digits
+                    );
+                    break;
+
+                case "HdrHistogramInt8Histogram":
+                    histogram = new Int8Histogram(
+                        lowest_trackable_unit_value,
+                        highest_trackable_value,
+                        number_of_significant_value_digits
+                    );
+                    break;
+                default:
+                    throw new HdrError.UNKNOWN_HISTOGRAM_TYPE("Hisgtogram of class %s wasn't registered in type system".printf(histogram_type.name()));
+            }
+            
             histogram.set_integer_to_double_value_conversion_ratio(integer_to_double_value_conversion_ratio);
             histogram.set_normalizing_index_offset(normalizing_index_offset);
             
@@ -1182,10 +1214,11 @@ namespace HdrHistogram {
                 throw new HdrError.ILLEGAL_ARGUMENT("word size must be 2, 4, 8, or V2maxWordSizeInBytes ("+
                         V2maxWordSizeInBytes.to_string() + ") bytes");
             }
+            
             int64 max_allowable_count_in_histogram =
-                    ((this.word_size_in_bytes == 2) ? int8.MAX :
-                            ((this.word_size_in_bytes == 4) ? int32.MAX : int64.MAX)
-                    );
+            ((this.word_size_in_bytes == 2) ? int8.MAX :
+            ((this.word_size_in_bytes == 4) ? int32.MAX : int64.MAX)
+            );
 
             int dst_index = 0;
             int end_position = reader.position + length_in_bytes;

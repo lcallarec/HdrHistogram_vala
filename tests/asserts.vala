@@ -46,9 +46,6 @@ void assert_same_histograms(AbstractHistogram _h1, AbstractHistogram _h2) {
         assert(h1.get_value_at_percentile(99.9) == h2.get_value_at_percentile(99.9));
         assert(h1.get_total_count() == h2.get_total_count());
         assert(h1.encode_compressed() == h2.encode_compressed());
-        message("H1 : %s", h1.encode_compressed());
-        message("H2 : %s", h2.encode_compressed());
-
     } catch (Error e) {
         assert_not_reached();
     }

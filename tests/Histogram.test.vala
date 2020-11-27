@@ -1,4 +1,5 @@
 namespace HdrHistogram {
+
     void register_histogram() {
 
         Test.add_func("/HdrHistogram/Histogram/init", () => {
@@ -430,24 +431,35 @@ namespace HdrHistogram {
             assert(mean == 215);
         });
 
-        //SUBBTRACT
+        //SUBTRACT
         Test.add_func("/HdrHistogram/Histogram/subtract", () => {
             //given
             var histogram = new Histogram(1, 1024, 5);
             var histogram2 = new Histogram(1, int64.MAX, 5);
 
             histogram.auto_resize = true;
-            histogram.record_value(1000);
-            histogram2.record_value(42000);
-
-            var dump = histogram.encode_compressed();
+            histogram.record_value(42000);
+            histogram2.record_value(1000);
 
             // when
             histogram.add(histogram2);
             histogram.subtract(histogram2);
 
             // then
-            assert(histogram.encode_compressed() == dump);
+            assert_same_histograms(histogram, histogram);
+        });
+
+        Test.add_func("/HdrHistogram/Histogram/record_value_with_count#overflow", () => {
+            // given
+            var histogram = new Histogram(1, int64.MAX, 3);
+
+            try {
+                histogram.record_value_with_count(1024, int64.MAX);
+                histogram.record_value_with_count(1024, int64.MAX);
+                assert_not_reached();
+            } catch {
+                //ok
+            }
         });
     }
 }
