@@ -216,7 +216,7 @@ namespace HdrHistogram {
             int counts_index = counts_array_index(value);
             try {
                 add_to_count_at_index(counts_index, count);
-            } catch (HdrError ex) { //TODO Only INDEX OUT OF BOUNDS
+            } catch (HdrError.INDEX_OUT_OF_BOUNDS ex) {
                 handle_record_exception(count, value, ex);
             }
             update_min_and_max(value);

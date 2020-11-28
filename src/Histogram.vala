@@ -71,7 +71,7 @@ namespace HdrHistogram {
             var currentCount = counts[normalized_index];
             var newCount = (uint64) (currentCount + value);
             if (newCount > int64.MAX) {
-                throw new HdrError.INTEGER_OVERFLOW("Integer overflow error : %lld would overflow int64.MAX value".printf(newCount));
+                throw new HdrError.INDEX_OUT_OF_BOUNDS("Integer overflow error : %lld would overflow int64.MAX value".printf(newCount));
             }
             counts[normalized_index] = (uint8) newCount;
         }
