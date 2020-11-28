@@ -124,11 +124,24 @@ histogram.record_value_with_expected_interval(42, 5);
 Post-processing of coordinated omissions :
 
 ```vala
-var new_histogram = histogram.copy_corrected_for_coordinated_omission(5);
+var new_histogram = histogram.copy_corrected_for_coordinated_omission(5);``
+histogram.add_while_correcting_for_coordinated_omission(other_histogram, 5)
 ```
 
-This is still WIP, ready soon !
+## Iterate over recorded values
 
+```vala
+var recorded_values = histogram.recorded_values();
+recorded_values.reset();
+while (recorded_values.has_next()) {
+    var recorded_value = recorded_values.next();
+    var value = recorded_value.get_value_iterated_to();
+    var count = recorded_value.get_count_at_value_iterated_to();
+    var percentile = recorded_value.get_percentile();
+};
+```
+
+## Dones, TODO and propably won't be done
 - [x] Record value
 - [x] Auto resize
 - [x] Reset
