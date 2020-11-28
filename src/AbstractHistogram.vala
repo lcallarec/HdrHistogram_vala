@@ -349,19 +349,17 @@ namespace HdrHistogram {
      *
      */
     public void subtract(AbstractHistogram other_histogram) throws HdrError {
-            //TODO throws ArrayIndexOutOfBoundsException, IllegalArgumentException {
         if (highest_equivalent_value(other_histogram.get_max_value()) >
                 highest_equivalent_value(value_from_index(this.counts_array_length - 1))) {
-            //  TODO throw new IllegalArgumentException(
-            //          "The other histogram includes values that do not fit in this histogram's range.");
+               throw new HdrError.ILLEGAL_ARGUMENT("The other histogram includes values that do not fit in this histogram's range.");
         }
         for (int i = 0; i < other_histogram.counts_array_length; i++) {
             int64 other_count = other_histogram.get_count_at_index(i);
             if (other_count > 0) {
                 int64 other_value = other_histogram.value_from_index(i);
-                if (get_count_at_value(other_value) < other_count) {
-                    //TODO throw new IllegalArgumentException("other_histogram count (" + other_count + ") at value " +
-                            //other_value + " is larger than this one's (" + get_count_at_value(other_value) + ")");
+                var count_at_other_value = get_count_at_value(other_value);
+                if (count_at_other_value < other_count) {
+                    throw new HdrError.ILLEGAL_ARGUMENT(@"other_histogram count ($other_count) at value $other_value is larger than this one's ($count_at_other_value)");
                 }
                 record_value_with_count(other_value, -other_count);
             }
