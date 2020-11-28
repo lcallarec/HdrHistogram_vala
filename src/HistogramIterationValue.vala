@@ -5,7 +5,7 @@ namespace HdrHistogram {
      * <ul>
      * <li><b><code>value_iterated_to</code></b> :<br> The actual value level that was iterated to by the iterator</li>
      * <li><b><code>prevvalue_iterated_to</code></b> :<br> The actual value level that was iterated from by the iterator</li>
-     * <li><b><code>count_atvalue_iterated_to</code></b> :<br> The count of recorded values in the histogram that
+     * <li><b><code>count_a_value_iterated_to</code></b> :<br> The count of recorded values in the histogram that
      * exactly match this [lowestEquivalentValue(value_iterated_to)...highestEquivalentValue(value_iterated_to)] value
      * range.</li>
      * <li><b><code>count_added_in_this_iteration_step</code></b> :<br> The count of recorded values in the histogram that
@@ -30,7 +30,7 @@ namespace HdrHistogram {
 
         private int64 value_iterated_to;
         private int64 value_iterated_from;
-        private int64 count_atvalue_iterated_to;
+        private int64 count_a_value_iterated_to;
         private int64 count_added_in_this_iteration_step;
         private int64 total_count_to_this_value;
         private int64 total_value_to_this_value;
@@ -42,7 +42,7 @@ namespace HdrHistogram {
         internal void set(
             int64 value_iterated_to,
             int64 value_iterated_from,
-            int64 count_atvalue_iterated_to,
+            int64 count_a_value_iterated_to,
             int64 count_in_this_iteration_step,
             int64 total_count_to_this_value,
             int64 total_value_to_this_value,
@@ -52,7 +52,7 @@ namespace HdrHistogram {
         ) {
             this.value_iterated_to = value_iterated_to;
             this.value_iterated_from = value_iterated_from;
-            this.count_atvalue_iterated_to = count_atvalue_iterated_to;
+            this.count_a_value_iterated_to = count_a_value_iterated_to;
             this.count_added_in_this_iteration_step = count_in_this_iteration_step;
             this.total_count_to_this_value = total_count_to_this_value;
             this.total_value_to_this_value = total_value_to_this_value;
@@ -64,7 +64,7 @@ namespace HdrHistogram {
         internal void reset() {
             value_iterated_to = 0;
             value_iterated_from = 0;
-            count_atvalue_iterated_to = 0;
+            count_a_value_iterated_to = 0;
             count_added_in_this_iteration_step = 0;
             total_count_to_this_value = 0;
             total_value_to_this_value = 0;
@@ -76,7 +76,7 @@ namespace HdrHistogram {
             return  @"
                 value_iterated_to:                  $value_iterated_to \n,
                 prev_value_iterated_to:             $value_iterated_from \n,
-                count_atvalue_iterated_to:          $count_atvalue_iterated_to \n,
+                count_a_value_iterated_to:          $count_a_value_iterated_to \n,
                 count_added_in_this_iteration_step: $count_added_in_this_iteration_step \n,
                 total_count_to_this_value:          $total_count_to_this_value \n,
                 total_value_to_this_value:          $total_value_to_this_value \n,
@@ -96,12 +96,8 @@ namespace HdrHistogram {
             return value_iterated_from;
         }
 
-        public double get_double_value_iterated_from() {
-            return value_iterated_from * integer_to_double_value_conversion_ratio;
-        }
-
         public int64 get_count_at_value_iterated_to() {
-            return count_atvalue_iterated_to;
+            return count_a_value_iterated_to;
         }
 
         public int64 get_count_added_in_this_iteration_step() {
@@ -122,10 +118,6 @@ namespace HdrHistogram {
 
         public double get_percentile_level_iterated_to() {
             return percentile_level_iterated_to;
-        }
-
-        public double get_integer_to_double_value_conversion_ratio() {
-            return integer_to_double_value_conversion_ratio;
         }
     }
 }
