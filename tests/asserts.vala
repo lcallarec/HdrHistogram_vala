@@ -39,14 +39,14 @@ void assert_same_histograms(AbstractHistogram _h1, AbstractHistogram _h2) {
             break;
     }
 
+    assert(h1.get_value_at_percentile(25) == h2.get_value_at_percentile(25));
+    assert(h1.get_value_at_percentile(90) == h2.get_value_at_percentile(90));
+    assert(h1.get_value_at_percentile(99) == h2.get_value_at_percentile(99));
+    assert(h1.get_value_at_percentile(99.9) == h2.get_value_at_percentile(99.9));
+    assert(h1.get_total_count() == h2.get_total_count());
     try {
-        assert(h1.get_value_at_percentile(25) == h2.get_value_at_percentile(25));
-        assert(h1.get_value_at_percentile(90) == h2.get_value_at_percentile(90));
-        assert(h1.get_value_at_percentile(99) == h2.get_value_at_percentile(99));
-        assert(h1.get_value_at_percentile(99.9) == h2.get_value_at_percentile(99.9));
-        assert(h1.get_total_count() == h2.get_total_count());
         assert(h1.encode_compressed() == h2.encode_compressed());
-    } catch (Error e) {
+    } catch (HdrError e) {
         assert_not_reached();
     }
 }

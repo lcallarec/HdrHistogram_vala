@@ -8,7 +8,9 @@ namespace HdrHistogram {
         UNSUPPORTED_OPERATION,
         DECODE_NO_VALID_COOKIE,
         INTEGER_OVERFLOW,
-        UNKNOWN_HISTOGRAM_TYPE
+        UNKNOWN_HISTOGRAM_TYPE,
+        ENCODE_ERROR,
+        COMPRESS_ERROR
     }
 
     /**
@@ -109,14 +111,14 @@ namespace HdrHistogram {
 
         // Abstract methods
         internal abstract void increment_count_at_index(int index) throws HdrError;
-        internal abstract void resize(int64 new_highest_trackable_value);
+        internal abstract void resize(int64 new_highest_trackable_value) throws HdrError;
         internal abstract void add_to_count_at_index(int index, int64 value) throws HdrError;
         internal abstract void increment_total_count();
-        internal abstract int64 get_count_at_index(int index) throws HdrError.INDEX_OUT_OF_BOUNDS;
+        internal abstract int64 get_count_at_index(int index);
         internal abstract void clear_counts();
         internal abstract int get_normalizing_index_offset();
         internal abstract void set_normalizing_index_offset(int normalizing_index_offset);
-        internal abstract void set_count_at_index(int index, int64 value);
+        internal abstract void set_count_at_index(int index, int64 value) throws HdrError ;
         internal abstract void set_total_count(int64 totalCount);
         internal abstract void add_to_total_count(int64 value);
 
@@ -198,16 +200,7 @@ namespace HdrHistogram {
             recorded_values_iterator = new RecordedValuesIterator(this);            
         }
 
-        public bool record_value(int64 value) {
-            try {
-                record_single_value(value);
-                return true;
-            } catch {
-                return false;
-            }
-        }
-
-        public void record_single_value(int64 value) throws HdrError {
+        public void record_value(int64 value) throws HdrError {
             var counts_index = counts_array_index(value);
             try {
                 increment_count_at_index(counts_index);
@@ -279,12 +272,12 @@ namespace HdrHistogram {
         }
 
         private void record_single_value_with_expected_interval(int64 value, int64 expected_interval_between_value_samples) throws HdrError {
-            record_single_value(value);
+            record_value(value);
             if (expected_interval_between_value_samples <= 0) {
                 return;
             }
             for (int64 missing_value = value - expected_interval_between_value_samples; missing_value >= expected_interval_between_value_samples; missing_value -= expected_interval_between_value_samples) {
-                record_single_value(missing_value);
+                record_value(missing_value);
             }
         }
 
@@ -402,7 +395,7 @@ namespace HdrHistogram {
         *                                           than expected_interval_between_value_samples
         * @throws ArrayIndexOutOfBoundsException (may throw) if values exceed highest_trackable_value
         */
-        public void add_while_correcting_for_coordinated_omission(AbstractHistogram other_histogram, int64 expected_interval_between_value_samples) {
+        public void add_while_correcting_for_coordinated_omission(AbstractHistogram other_histogram, int64 expected_interval_between_value_samples) throws HdrError {
             AbstractHistogram to_histogram = this;
 
             var recorded_values = other_histogram.recorded_values();
@@ -439,7 +432,7 @@ namespace HdrHistogram {
          *                                           than expected_interval_between_value_samples
          * @return a copy of this histogram, corrected for coordinated omission.
          */
-        public abstract AbstractHistogram copy_corrected_for_coordinated_omission(int64 expected_interval_between_value_samples);
+        public abstract AbstractHistogram copy_corrected_for_coordinated_omission(int64 expected_interval_between_value_samples) throws HdrError;
 
         public bool is_auto_resize() {
             return auto_resize;
@@ -577,14 +570,14 @@ namespace HdrHistogram {
              return (int) (uint) (value >> (bucket_index + unit_magnitude));
         }
 
-        internal int normalize_index(int index, int normalizing_index_offset, int array_length) {
+        internal int normalize_index(int index, int normalizing_index_offset, int array_length) throws HdrError {
             if (normalizing_index_offset == 0) {
                 // Fastpath out of normalization. Keeps integer value histograms fast while allowing
                 // others (like DoubleHistogram) to use normalization at a cost...
                 return index;
             }
             if ((index > array_length) || (index < 0)) {
-                //throw new ArrayIndexOutOfBoundsException("index out of covered value range");
+                throw new HdrError.INDEX_OUT_OF_BOUNDS("index out of covered value range");
             }
             int normalized_index = index - normalizing_index_offset;
             // The following is the same as an unsigned remainder operation, as int64 as no double wrapping happens
@@ -671,11 +664,7 @@ namespace HdrHistogram {
          * @return the Min value recorded in the histogram
          */
         public int64 get_min_value() {
-            try {
-                if ((get_count_at_index(0) > 0) || (get_total_count() == 0)) {
-                    return 0;
-                }
-            } catch {
+            if ((get_count_at_index(0) > 0) || (get_total_count() == 0)) {
                 return 0;
             }
             return get_min_non_zero_value();
@@ -706,12 +695,13 @@ namespace HdrHistogram {
          *
          * @return the mean value (in value units) of the histogram data
          */
-        public double get_mean() throws HdrError {
+        public double get_mean() {
             if (get_total_count() == 0) {
                 return 0.0;
             }
             recorded_values_iterator.reset();
             double total_value = 0;
+
             while (recorded_values_iterator.has_next()) {
                 HistogramIterationValue iteration_value = recorded_values_iterator.next();
                 total_value += median_equivalent_value(iteration_value.get_value_iterated_to())
@@ -725,13 +715,14 @@ namespace HdrHistogram {
          *
          * @return the standard deviation (in value units) of the histogram data
          */
-        public double get_std_deviation() throws HdrError {
+        public double get_std_deviation() {
             if (get_total_count() == 0) {
                 return 0.0;
             }
             double mean = get_mean();
             double geometric_deviation_total = 0.0;
             recorded_values_iterator.reset();
+
             while (recorded_values_iterator.has_next()) {
                 HistogramIterationValue iteration_value = recorded_values_iterator.next();
                 double deviation = (median_equivalent_value(iteration_value.get_value_iterated_to()) * 1.0) - mean;
@@ -753,7 +744,7 @@ namespace HdrHistogram {
          * @return The largest value that (100% - percentile) [+/- 1 ulp] of the overall recorded value entries
          * in the histogram are either larger than or equivalent to. Returns 0 if no recorded values exist.
          */
-        public int64 get_value_at_percentile(double percentile) throws HdrError {
+        public int64 get_value_at_percentile(double percentile) {
             // Truncate to 0..100%, and remove 1 ulp to avoid roundoff overruns into next bucket when we
             // subsequently round up to the nearest integer:
             double requested_percentile = double.min(double.max(Math.nextafter(percentile, -double.INFINITY), 0.0), 100.0);
@@ -788,7 +779,7 @@ namespace HdrHistogram {
          * @return The percentile of values recorded in the histogram that are smaller than or equivalent
          * to the given value.
          */
-        public double get_percentile_at_or_below_value(int64 value) throws HdrError {
+        public double get_percentile_at_or_below_value(int64 value) {
             if (get_total_count() == 0) {
                 return 100.0;
             }
@@ -1044,18 +1035,22 @@ namespace HdrHistogram {
          * @param compression_level Compression level -1 default, 0-9
          * @return ByteArray the buffer
          */
-        public ByteArray encode_into_compressed_byte_buffer(int compression_level = -1) {
+        public ByteArray encode_into_compressed_byte_buffer(int compression_level = -1) throws HdrError {
 
             var uncompressed_byte_array = encode_into_byte_buffer();
     
             ByteArrayWriter writer = new ByteArrayWriter(ByteOrder.BIG_ENDIAN);
             
-            var compressed_array = Zlib.compress(uncompressed_byte_array.data); 
-
-            writer.put_int32(get_compressed_encoding_cookie());
-
-            writer.put_int32(compressed_array.length);
-            writer.put_bytes(compressed_array);
+            try {
+                var compressed_array = Zlib.compress(uncompressed_byte_array.data); 
+    
+                writer.put_int32(get_compressed_encoding_cookie());
+    
+                writer.put_int32(compressed_array.length);
+                writer.put_bytes(compressed_array);
+            } catch(HdrError e) {
+                throw new HdrError.ENCODE_ERROR(e.message);
+            }
 
             return writer.to_byte_array();
         }
@@ -1065,17 +1060,17 @@ namespace HdrHistogram {
             return Base64.encode((uchar[]) buffer.data);
         }
 
-        public string encode_compressed(int compression_level = -1) {
+        public string encode_compressed(int compression_level = -1) throws HdrError {
             ByteArray buffer = encode_into_compressed_byte_buffer(compression_level);
             return Base64.encode((uchar[]) buffer.data);
         }
         
-        public static AbstractHistogram _decode(Type histogram_type, string compressed_histogram) {
+        public static AbstractHistogram _decode(Type histogram_type, string compressed_histogram) throws HdrError {
             var bytes = Base64.decode(compressed_histogram);
             return _decode_from_byte_buffer(histogram_type, new ByteArray.take(bytes));
         }
 
-        public static AbstractHistogram _decode_compressed(Type histogram_type, string histogram) {
+        public static AbstractHistogram _decode_compressed(Type histogram_type, string histogram) throws HdrError {
             var bytes = Base64.decode(histogram);
             return _decode_from_compressed_byte_buffer(histogram_type, new ByteArray.take(bytes));
         }
@@ -1110,13 +1105,14 @@ namespace HdrHistogram {
             return encoder.to_byte_array();
         }
 
-        protected static AbstractHistogram _decode_from_compressed_byte_buffer(Type histogram_type, ByteArray compressed_buffer) {
+        protected static AbstractHistogram _decode_from_compressed_byte_buffer(Type histogram_type, ByteArray compressed_buffer) throws HdrError {
 
             var reader = new ByteArrayReader(compressed_buffer, ByteOrder.BIG_ENDIAN);
 
             int cookie = reader.read_int32();
 
             int header_size;
+    
             if (get_cookie_base(cookie) == V2CompressedEncodingCookieBase) {
                 header_size = AbstractHistogram.ENCODING_HEADER_SIZE;
             } else {
@@ -1131,7 +1127,7 @@ namespace HdrHistogram {
             return _decode_from_byte_buffer(histogram_type, new ByteArray.take(header_buffer));
         }
 
-        protected static AbstractHistogram _decode_from_byte_buffer(Type histogram_type, ByteArray buffer) {
+        protected static AbstractHistogram _decode_from_byte_buffer(Type histogram_type, ByteArray buffer) throws HdrError {
             var reader = new ByteArrayReader(buffer, ByteOrder.BIG_ENDIAN);
             int cookie = reader.read_int32();
             if (get_cookie_base(cookie) == V2EncodingCookieBase) {
@@ -1191,11 +1187,7 @@ namespace HdrHistogram {
             histogram.set_integer_to_double_value_conversion_ratio(integer_to_double_value_conversion_ratio);
             histogram.set_normalizing_index_offset(normalizing_index_offset);
             
-            try {
-                histogram.set_auto_resize(true);
-            } catch {
-                // Allow histogram to refuse auto-sizing setting
-            }
+            histogram.set_auto_resize(true);
 
             int filled_length = histogram.fill_counts_array_from_source_buffer(
                 reader,
@@ -1208,11 +1200,10 @@ namespace HdrHistogram {
             return histogram;
         }
 
-        private int fill_counts_array_from_source_buffer(ByteArrayReader reader, int length_in_bytes, int word_size_in_bytes) {
+        private int fill_counts_array_from_source_buffer(ByteArrayReader reader, int length_in_bytes, int word_size_in_bytes) throws HdrError{
             if ((word_size_in_bytes != 2) && (word_size_in_bytes != 4) &&
                     (word_size_in_bytes != 8) && (word_size_in_bytes != V2maxWordSizeInBytes)) {
-                throw new HdrError.ILLEGAL_ARGUMENT("word size must be 2, 4, 8, or V2maxWordSizeInBytes ("+
-                        V2maxWordSizeInBytes.to_string() + ") bytes");
+                throw new HdrError.ILLEGAL_ARGUMENT("word size must be 2, 4, 8, or V2maxWordSizeInBytes (%s) bytes".printf(V2maxWordSizeInBytes.to_string()));
             }
             
             int64 max_allowable_count_in_histogram =

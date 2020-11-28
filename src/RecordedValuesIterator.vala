@@ -30,7 +30,7 @@ namespace HdrHistogram {
             visited_index = current_index;
         }
     
-        internal override bool reached_iteration_level() throws HdrError {
+        internal override bool reached_iteration_level() {
             int64 current_count = histogram.get_count_at_index(current_index);
             return (current_count != 0) && (visited_index != current_index);
         }

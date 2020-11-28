@@ -27,23 +27,23 @@ namespace HdrHistogram {
             return total_count;
         }
 
-        public static Int16Histogram decode(string histogram) {
+        public static Int16Histogram decode(string histogram) throws HdrError {
             return _decode(typeof(Int16Histogram), histogram) as Int16Histogram;
         }
 
-        public static Int16Histogram decode_compressed(string histogram) {
+        public static Int16Histogram decode_compressed(string histogram) throws HdrError {
             return _decode_compressed(typeof(Int16Histogram), histogram) as Int16Histogram;
         }
 
-        public static Int16Histogram decode_from_byte_buffer(ByteArray buffer) {
+        public static Int16Histogram decode_from_byte_buffer(ByteArray buffer) throws HdrError {
             return _decode_from_byte_buffer(typeof(Int16Histogram), buffer) as Int16Histogram;
         }
 
-        public static Int16Histogram decode_from_compressed_byte_buffer(ByteArray compressed_buffer) {
+        public static Int16Histogram decode_from_compressed_byte_buffer(ByteArray compressed_buffer) throws HdrError {
             return _decode_from_compressed_byte_buffer(typeof(Int16Histogram), compressed_buffer) as Int16Histogram;
         }
 
-        public override AbstractHistogram copy_corrected_for_coordinated_omission(int64 expected_interval_between_value_samples) {
+        public override AbstractHistogram copy_corrected_for_coordinated_omission(int64 expected_interval_between_value_samples) throws HdrError {
             Histogram copy = new Histogram.from_source(this);
             copy.add_while_correcting_for_coordinated_omission(this, expected_interval_between_value_samples);
             return copy;
@@ -54,8 +54,12 @@ namespace HdrHistogram {
             total_count = 0;
         }
 
-        internal override int64 get_count_at_index(int index) throws HdrError.INDEX_OUT_OF_BOUNDS {
-            return counts[normalize_index(index, normalizing_index_offset, counts_array_length)];
+        internal override int64 get_count_at_index(int index) {
+            try {
+                return counts[normalize_index(index, normalizing_index_offset, counts_array_length)];
+            } catch (HdrError e) {
+                return 0;
+            }
         }
 
         internal override void increment_total_count() {
@@ -89,7 +93,7 @@ namespace HdrHistogram {
             total_count += value;
         }
 
-        internal override void resize(int64 new_highest_trackable_value) {
+        internal override void resize(int64 new_highest_trackable_value) throws HdrError {
             int old_normalized_zero_index = normalize_index(0, normalizing_index_offset, counts_array_length);
 
             establish_size(new_highest_trackable_value);
@@ -119,8 +123,8 @@ namespace HdrHistogram {
             non_concurrent_set_integer_to_double_value_conversion_ratio(integer_to_double_value_conversion_ratio);
         }
 
-        internal override void set_count_at_index(int index, int64 value) {
-            counts[normalize_index(index, normalizing_index_offset, counts_array_length)] = (uint8) value;
+        internal override void set_count_at_index(int index, int64 value) throws HdrError {
+            counts[normalize_index(index, normalizing_index_offset, counts_array_length)] = (uint16) value;
         }
 
         internal override void set_total_count(int64 total_count) {
