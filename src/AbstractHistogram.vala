@@ -18,7 +18,7 @@ namespace HdrHistogram {
      * from AbstractHistogram. But keeping vala implementation as much as possible in sync with reference implementation
      * helps for adding features and debugging.
      */
-    public abstract class AbstractHistogramBase : Object {
+    public abstract class AbstractHistogramBase {
         
         internal bool auto_resize = false;
 
@@ -135,12 +135,12 @@ namespace HdrHistogram {
          * time values stated in nanosecond units, where the minimal accuracy required is a microsecond, the
          * proper value for lowest_discernible_value would be 1000.
          *
-         * @lowest_discernible_value           The lowest value that can be discerned (distinguished from 0) by the histogram.
-         *                                     Must be a positive integer that is {@literal >=} 1. May be internally rounded
+         * @param lowest_discernible_value    The lowest value that can be discerned (distinguished from 0) by the histogram.
+         *                                     Must be a positive integer that is >= 1. May be internally rounded
          *                                     down to nearest power of 2.
-         * @highest_trackable_value            The highest value to be tracked by the histogram. Must be a positive
-         *                                     integer that is {@literal >=} (2 * lowest_discernible_value).
-         * @number_of_significant_value_digits The number of significant decimal digits to which the histogram will
+         * @param highest_trackable_value     The highest value to be tracked by the histogram. Must be a positive
+         *                                     integer that is >= (2 * lowest_discernible_value).
+         * @param number_of_significant_value_digits The number of significant decimal digits to which the histogram will
          *                                     maintain value resolution and separation. Must be a non-negative
          *                                     integer between 0 and 5.
          */        
@@ -200,7 +200,7 @@ namespace HdrHistogram {
             recorded_values_iterator = new RecordedValuesIterator(this);            
         }
 
-        public void record_value(int64 value) throws HdrError {
+        public void record_value(int64 value) {
             var counts_index = counts_array_index(value);
             try {
                 increment_count_at_index(counts_index);
@@ -289,7 +289,7 @@ namespace HdrHistogram {
      * extended to include the start/end timestamp range of the other histogram.
      *
      * @param other_histogram The other histogram.
-     * @throws ArrayIndexOutOfBoundsException (may throw) if values in fromHistogram's are
+     * @throws HdrError.INDEX_OUT_OF_BOUNDS (may throw) if values in from other_histogram are
      * higher than highest_trackable_value.
      */
     public void add(AbstractHistogram other_histogram) throws HdrError {
@@ -345,7 +345,7 @@ namespace HdrHistogram {
      * The start/end timestamps of this histogram will remain unchanged.
      *
      * @param other_histogram The other histogram.
-     * @throws ArrayIndexOutOfBoundsException (may throw) if values in other_histogram's are higher than highestTrackableValue.
+     * @throws HdrError.ILLEGAL_ARGUMENT (may throw) if values in other_histogram's are higher than highestTrackableValue.
      *
      */
     public void subtract(AbstractHistogram other_histogram) throws HdrError {
@@ -379,7 +379,7 @@ namespace HdrHistogram {
          * in the current histogram that is larger than the expectedIntervalBetweenValueSamples.
          *
          * Note: This is a post-recording correction method, as opposed to the at-recording correction method provided
-         * by {@link #recordValueWithExpectedInterval(int64, int64) recordValueWithExpectedInterval}. The two
+         * by recordValueWithExpectedInterval. The two
          * methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
         * for the same coordinated omission issue.
         * by
@@ -391,7 +391,7 @@ namespace HdrHistogram {
         * @param expected_interval_between_value_samples If expected_interval_between_value_samples is larger than 0, add
         *                                           auto-generated value records as appropriate if value is larger
         *                                           than expected_interval_between_value_samples
-        * @throws ArrayIndexOutOfBoundsException (may throw) if values exceed highest_trackable_value
+        * @throws HdrError (may throw) if values exceed highest_trackable_value
         */
         public void add_while_correcting_for_coordinated_omission(AbstractHistogram other_histogram, int64 expected_interval_between_value_samples) throws HdrError {
             AbstractHistogram to_histogram = this;
@@ -417,7 +417,7 @@ namespace HdrHistogram {
          * in the current histogram that is larger than the expectedIntervalBetweenValueSamples.
          *
          * Note: This is a post-correction method, as opposed to the at-recording correction method provided
-         * by {@link #record_value_with_expected_interval(int64, int64) record_value_with_expected_interval}. The two
+         * by record_value_with_expected_interval. The two
          * methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
          * for the same coordinated omission issue.
          * by
@@ -466,7 +466,7 @@ namespace HdrHistogram {
         }
 
         private void reset_max_value(int64 max_value) {
-            this.max_value = max_value | unit_magnitude_mask; // Max unit-equivalent value
+            this.max_value = max_value | unit_magnitude_mask;
         }
 
         private void reset_min_non_zero_value(int64 min_non_zero_value) {
@@ -485,9 +485,9 @@ namespace HdrHistogram {
         }
         
         protected int counts_array_index(int64 value) {
-            var bucket_index = this.get_bucket_index(value);
-            var sub_bucket_index = this.get_sub_bucket_index(value, bucket_index);
-            return this.counts_array_index_from_bucket(bucket_index, sub_bucket_index);
+            var bucket_index = get_bucket_index(value);
+            var sub_bucket_index = get_sub_bucket_index(value, bucket_index);
+            return counts_array_index_from_bucket(bucket_index, sub_bucket_index);
         }
 
 
@@ -734,9 +734,6 @@ namespace HdrHistogram {
          * Get the value at a given percentile.
          * Returns the largest value that (100% - percentile) [+/- 1 ulp] of the overall recorded value entries
          * in the histogram are either larger than or equivalent to. Returns 0 if no recorded values exist.
-         * <p>
-         * Note that two values are "equivalent" in this statement if
-         * {@link org.HdrHistogram.AbstractHistogram#valuesAreEquivalent} would return true.
          *
          * @param percentile  The percentile for which to return the associated value
          * @return The largest value that (100% - percentile) [+/- 1 ulp] of the overall recorded value entries
@@ -794,11 +791,11 @@ namespace HdrHistogram {
          *
          * @param low_value  The lower value bound on the range for which
          *                  to provide the recorded count. Will be rounded down with
-         *                  {@link Histogram#lowest_equivalent_value lowest_equivalent_value}.
+         *                  {@link Histogram#lowest_equivalent_value} lowest_equivalent_value.
          * @param high_value  The higher value bound on the range for which to provide the recorded count.
-         *                   Will be rounded up with {@link Histogram#highest_equivalent_value highest_equivalent_value}.
+         *                   Will be rounded up with {@link Histogram#highest_equivalent_value}.
          * @return the total count of values recorded in the histogram within the value range that is
-         * {@literal >=} lowest_equivalent_value(<i>low_value</i>) and {@literal <=} highest_equivalent_value(<i>high_value</i>)
+         * >= lowest_equivalent_value(<i>low_value</i>) and <= highest_equivalent_value(<i>high_value</i>)
          */
         public int64 get_count_between_values(int64 low_value, int64 high_value) throws HdrError.INDEX_OUT_OF_BOUNDS {
             int lowIndex = int.max(0, counts_array_index(low_value));
@@ -815,7 +812,7 @@ namespace HdrHistogram {
          *
          * @param value The value for which to provide the recorded count
          * @return The total count of values recorded in the histogram within the value range that is
-         * {@literal >=} lowest_equivalent_value(<i>value</i>) and {@literal <=} highest_equivalent_value(<i>value</i>)
+         * >= lowest_equivalent_value(<i>value</i>) and <= highest_equivalent_value(<i>value</i>)
          */
         public int64 get_count_at_value(int64 value) throws HdrError.INDEX_OUT_OF_BOUNDS {
             int index = int.min(int.max(0, counts_array_index(value)), (counts_array_length - 1));
@@ -886,7 +883,7 @@ namespace HdrHistogram {
 
         /**
          * Set the end time stamp value associated with this histogram to a given value.
-         * @param timeStampMsec the value to set the time stamp to, [by convention] in msec since the epoch.
+         * @param time_stamp_msec the value to set the time stamp to, [by convention] in msec since the epoch.
          */
         public void set_end_time_stamp(int64 time_stamp_msec) {
             end_time_stamp_msec = time_stamp_msec;
@@ -1029,7 +1026,6 @@ namespace HdrHistogram {
 
         /**
          * Encode this histogram in compressed form into a byte array
-         * @param target_buffer The buffer to encode into
          * @param compression_level Compression level -1 default, 0-9
          * @return ByteArray the buffer
          */
@@ -1289,19 +1285,12 @@ namespace HdrHistogram {
          * supported by the underlying representation. The iteration steps through all non-zero recorded value counts,
          * and terminates when all recorded histogram values are exhausted.
          *
-         * @return An {@link java.lang.Iterable}{@literal <}{@link HistogramIterationValue}{@literal >}
-         * through the histogram using
-         * a {@link RecordedValuesIterator}
          */
         public RecordedValuesIterator recorded_values() {
             return new RecordedValuesIterator(this);
         }
     }
 
-     /**
-     * An {@link java.lang.Iterable}{@literal <}{@link HistogramIterationValue}{@literal >} through
-     * the histogram using a {@link PercentileIterator}
-     */
     public class Percentiles : Iterable<HistogramIterationValue> {
         internal AbstractHistogram histogram;
         internal int percentile_ticks_per_half_distance;
@@ -1311,10 +1300,7 @@ namespace HdrHistogram {
             this.percentile_ticks_per_half_distance = percentile_ticks_per_half_distance;
         }
 
-        /**
-         * @return A {@link PercentileIterator}{@literal <}{@link HistogramIterationValue}{@literal >}
-         */
-         public Iterator<HistogramIterationValue> iterator() {
+        public Iterator<HistogramIterationValue> iterator() {
             return new PercentileIterator(histogram, percentile_ticks_per_half_distance);
         }
     }

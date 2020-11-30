@@ -67,13 +67,13 @@ namespace HdrHistogram {
         }
 
         internal override void add_to_count_at_index(int index, int64 value) throws HdrError {
-            var normalized_index = normalize_index(index, normalizing_index_offset, counts_array_length);
-            var currentCount = counts[normalized_index];
-            var newCount = (uint64) (currentCount + value);
-            if (newCount > int64.MAX) {
-                throw new HdrError.INDEX_OUT_OF_BOUNDS("Integer overflow error : %lld would overflow int64.MAX value".printf(newCount));
-            }
-            counts[normalized_index] = (uint8) newCount;
+            //var normalized_index = normalize_index(index, normalizing_index_offset, counts_array_length);
+            //  var currentCount = counts[normalized_index];
+            //  var newCount = (uint64) (currentCount + value);
+            //  if (newCount > int64.MAX) {
+            //      throw new HdrError.INDEX_OUT_OF_BOUNDS("Integer overflow error : %lld would overflow int64.MAX value".printf(newCount));
+            //  }
+            counts[normalize_index(index, normalizing_index_offset, counts_array_length)] = value;
         }
 
         internal override void add_to_total_count(int64 value) {
@@ -81,11 +81,11 @@ namespace HdrHistogram {
         }
 
         internal override void increment_count_at_index(int index) throws HdrError {
-            var normalized_index = normalize_index(index, normalizing_index_offset, counts_array_length);
-            if (normalized_index > counts.length -1) {
-                throw new HdrError.INDEX_OUT_OF_BOUNDS("In increment_count_at_index");
-            }
-            counts[normalized_index]++;
+            //var normalized_index = normalize_index(index, normalizing_index_offset, counts_array_length);
+            //  if (normalized_index > counts.length -1) {
+            //      throw new HdrError.INDEX_OUT_OF_BOUNDS("In increment_count_at_index");
+            //  }
+            counts[index]++;
         }
 
         internal override void resize(int64 new_highest_trackable_value) throws HdrError {

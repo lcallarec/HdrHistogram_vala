@@ -10,7 +10,6 @@ namespace HdrHistogram.ZigZag {
 
         /**
          * Writes an int64 value to the given buffer in LEB128 ZigZag encoded format
-         * @param buffer the buffer to write to
          * @param value  the value to write to the buffer
          */
         public void encode_int64(int64 value) {
@@ -73,7 +72,6 @@ namespace HdrHistogram.ZigZag {
 
         /**
          * Read an LEB128-64b9B ZigZag encoded int64 value from the given buffer
-         * @param buffer the buffer to read from
          * @return the value read from the buffer
          */
         public int64 decode_int64() {
