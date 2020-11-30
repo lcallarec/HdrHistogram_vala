@@ -106,7 +106,7 @@ namespace HdrHistogram {
          */
         int64 unit_magnitude_mask;  
 
-        int64 max_value = 0;
+        int64 *max_value;
         int64 min_non_zero_value = int64.MAX;
 
         // Abstract methods
@@ -168,6 +168,8 @@ namespace HdrHistogram {
             double integer_to_double_value_conversion_ratio,
             int normalizing_index_offset
         ) {
+            max_value = (int64*) 0;
+
             this.lowest_discernible_value = lowest_discernible_value;
             this.highest_trackable_value = highest_trackable_value;
             this.number_of_significant_value_digits = number_of_significant_value_digits;
@@ -200,7 +202,7 @@ namespace HdrHistogram {
             recorded_values_iterator = new RecordedValuesIterator(this);            
         }
 
-        public void record_value(int64 value) {
+        public void record_value(int64 value) throws HdrError {
             var counts_index = counts_array_index(value);
             try {
                 increment_count_at_index(counts_index);
@@ -447,7 +449,7 @@ namespace HdrHistogram {
         }
 
         internal void update_min_and_max(int64 value) {
-            if (value > max_value) {
+            if (value > (int64) max_value) {
                 updated_max_value(value);
             }
             if ((value < min_non_zero_value) && (value != 0)) {
@@ -461,12 +463,13 @@ namespace HdrHistogram {
          * @param value new max_value to set
          */
         private void updated_max_value(int64 value) {
-            int64 internal_value = value | unit_magnitude_mask; // Max unit-equivalent value
-            max_value = internal_value;
+            var internal_value = value | unit_magnitude_mask;
+            max_value = (int64*) internal_value;
         }
 
-        private void reset_max_value(int64 max_value) {
-            this.max_value = max_value | unit_magnitude_mask;
+        private void reset_max_value(int64 new_max_value) {
+            var internal_value = new_max_value | unit_magnitude_mask;            
+            max_value = (int64*) internal_value;
         }
 
         private void reset_min_non_zero_value(int64 min_non_zero_value) {
@@ -675,7 +678,7 @@ namespace HdrHistogram {
          * @return the Max value recorded in the histogram
          */
         public int64 get_max_value() {
-            return (max_value == 0) ? 0 : highest_equivalent_value(max_value);
+            return ((int64) max_value == 0) ? 0 : highest_equivalent_value((int64) max_value);
         }
 
         /**
@@ -1070,7 +1073,7 @@ namespace HdrHistogram {
         }
 
         internal ByteArray create_bytes_from_counts_array() {
-            int counts_limit = counts_array_index(max_value) + 1;
+            int counts_limit = counts_array_index((int64) max_value) + 1;
             int src_index = 0;
             
             var encoder = new ZigZag.Encoder();
