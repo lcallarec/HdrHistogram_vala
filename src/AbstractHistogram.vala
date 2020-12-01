@@ -40,22 +40,14 @@ namespace HdrHistogram {
         internal int64 end_time_stamp_msec = 0;
         internal string tag = null;
 
-        internal double integer_to_double_value_conversion_ratio = 1.0;
         internal double double_to_integer_value_conversion_ratio = 1.0;
 
         internal PercentileIterator percentile_iterator;
         internal RecordedValuesIterator recorded_values_iterator;
 
         internal double get_integer_to_double_value_conversion_ratio() {
-            return integer_to_double_value_conversion_ratio;
+            return 1.0;
         }
-
-        internal void non_concurrent_set_integer_to_double_value_conversion_ratio(double integer_to_double_value_conversion_ratio) {
-            this.integer_to_double_value_conversion_ratio = integer_to_double_value_conversion_ratio;
-            double_to_integer_value_conversion_ratio = 1.0/integer_to_double_value_conversion_ratio;
-        }
-
-        internal abstract void set_integer_to_double_value_conversion_ratio(double integer_to_double_value_conversion_ratio);
 
         /**
          * get the configured lowest_discernible_value
@@ -146,7 +138,7 @@ namespace HdrHistogram {
          */        
         protected AbstractHistogram(int64 lowest_discernible_value, int64 highest_trackable_value, int8 number_of_significant_value_digits) 
         {
-           init(lowest_discernible_value, highest_trackable_value, number_of_significant_value_digits, 1.0, 0);
+           init(lowest_discernible_value, highest_trackable_value, number_of_significant_value_digits, 0);
         }
 
         /**
@@ -155,7 +147,7 @@ namespace HdrHistogram {
          * @param source The source histogram to duplicate
          */
         protected AbstractHistogram.from_source(AbstractHistogram source) {
-            init(source.get_lowest_discernible_value(), source.get_highest_trackable_value(), source.get_number_of_significant_value_digits(), 1.0, 0);
+            init(source.get_lowest_discernible_value(), source.get_highest_trackable_value(), source.get_number_of_significant_value_digits(), 0);
             this.set_start_time_stamp(source.get_start_time_stamp());
             this.set_end_time_stamp(source.get_end_time_stamp());
             this.auto_resize = source.auto_resize;
@@ -165,7 +157,6 @@ namespace HdrHistogram {
             int64 lowest_discernible_value,
             int64 highest_trackable_value,
             int8 number_of_significant_value_digits,
-            double integer_to_double_value_conversion_ratio,
             int normalizing_index_offset
         ) {
             max_value = (int64*) 0;
@@ -1142,7 +1133,7 @@ namespace HdrHistogram {
             var number_of_significant_value_digits = (int8) reader.read_int32();
             var lowest_trackable_unit_value = reader.read_int64();
             var highest_trackable_value = reader.read_int64();
-            var integer_to_double_value_conversion_ratio = reader.read_double();
+            var integer_to_double_value_conversion_ratio = reader.read_double(); // unused
 
             AbstractHistogram histogram;
             switch(histogram_type.name()) {
@@ -1181,7 +1172,6 @@ namespace HdrHistogram {
                     throw new HdrError.UNKNOWN_HISTOGRAM_TYPE("Hisgtogram of class %s wasn't registered in type system".printf(histogram_type.name()));
             }
             
-            histogram.set_integer_to_double_value_conversion_ratio(integer_to_double_value_conversion_ratio);
             histogram.set_normalizing_index_offset(normalizing_index_offset);
             
             histogram.set_auto_resize(true);

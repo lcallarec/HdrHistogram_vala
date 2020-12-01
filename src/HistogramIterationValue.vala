@@ -15,7 +15,6 @@ namespace HdrHistogram {
         private int64 total_value_to_this_value;
         private double percentile;
         private double percentile_level_iterated_to;
-        private double integer_to_double_value_conversion_ratio;
 
         // Set is all-or-nothing to avoid the potential for accidental omission of some values...
         internal void set(
@@ -26,8 +25,7 @@ namespace HdrHistogram {
             int64 total_count_to_this_value,
             int64 total_value_to_this_value,
             double percentile,
-            double percentile_level_iterated_to,
-            double integer_to_double_value_conversion_ratio
+            double percentile_level_iterated_to
         ) {
             this.value_iterated_to = value_iterated_to;
             this.value_iterated_from = value_iterated_from;
@@ -37,7 +35,6 @@ namespace HdrHistogram {
             this.total_value_to_this_value = total_value_to_this_value;
             this.percentile = percentile;
             this.percentile_level_iterated_to = percentile_level_iterated_to;
-            this.integer_to_double_value_conversion_ratio = integer_to_double_value_conversion_ratio;
         }
 
         internal void reset() {
@@ -65,10 +62,6 @@ namespace HdrHistogram {
 
         public int64 get_value_iterated_to() {
             return value_iterated_to;
-        }
-
-        public double get_double_value_iterated_to() {
-            return value_iterated_to * integer_to_double_value_conversion_ratio;
         }
 
         public int64 get_value_iterated_from() {

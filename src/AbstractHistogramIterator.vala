@@ -24,12 +24,9 @@ namespace HdrHistogram {
         
         internal HistogramIterationValue current_iteration_value = new HistogramIterationValue();
 
-        private double integer_to_double_value_conversion_ratio;
-
         internal void reset_iterator(AbstractHistogram histogram) {
             this.histogram = histogram;
             array_total_count = histogram.get_total_count();
-            integer_to_double_value_conversion_ratio = histogram.get_integer_to_double_value_conversion_ratio();
             current_index = 0;
             current_value_at_index = 0;
             next_value_at_index = 1 << histogram.unit_magnitude;
@@ -80,8 +77,7 @@ namespace HdrHistogram {
                         total_count_to_current_index,
                         total_value_to_current_index,
                         ((100.0 * total_count_to_current_index) / array_total_count),
-                        get_percentile_iterated_to(),
-                        integer_to_double_value_conversion_ratio
+                        get_percentile_iterated_to()
                     );
                     
                     prev_value_iterated_to = value_iterated_to;
