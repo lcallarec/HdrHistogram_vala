@@ -179,5 +179,25 @@ namespace HdrHistogram {
                 assert_not_reached();
             }
         });
+
+        Test.add_func("/HdrHistogram/Histogram/encode_compressed#regression_remove_normalized_index_with_lots_of_values", () => {
+            // given
+            var histogram = new Histogram(1, 1000000, 3);
+
+            //when
+            try {
+                int i = 0; 
+                for (i = 0; i < 1000000; i++) {
+                    histogram.record_value(i);
+                }
+            } catch {
+                assert_not_reached();
+            }
+
+            //then
+            assert_not_throw(
+                () => assert(histogram.encode_compressed() == "HISTFAAAAGF4nO3IsQmDYBSF0f9XC7sIaVO4h4USHMzCDbKoIwTUCWzv+Q68C++z/96lTGu5au+t5319l/m4Ho0kSYqrkxRbLym2QVJso6TYFkmxbRUAiNMAAHE6ACBODwA8UP/YiQ4p")
+            );
+        });   
     }
 }

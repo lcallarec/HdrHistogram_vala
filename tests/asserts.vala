@@ -1,5 +1,14 @@
 using HdrHistogram;
 
+delegate void NotThrowFunc() throws Error;
+void assert_not_throw(NotThrowFunc func) {
+    try {
+        func();
+    } catch {
+        assert_not_reached();
+    }
+}
+
 void assert_same_histograms(AbstractHistogram _h1, AbstractHistogram _h2) {
     var h1 = _h1;  
     var h2 = _h2;     
