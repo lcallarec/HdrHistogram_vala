@@ -6,7 +6,7 @@
 
 Gil Tene's [High Dynamic Range Histogram](https://github.com/HdrHistogram/HdrHistogram) vala implementation
 
-Who's better than Gil Tene himself to describe what is HdrHistogram :
+Who's better than Gil Tene himself to describe what is HdrHistogram:
 
 > HdrHistogram supports the recording and analyzing of sampled data value counts across a configurable integer value range with configurable value precision within the range. Value precision is expressed as the number of significant digits in the value recording, and provides control over value quantization behavior across the value range and the subsequent value resolution at any given level.
 
@@ -14,7 +14,7 @@ Who's better than Gil Tene himself to describe what is HdrHistogram :
 
 ## Create an Histogram
 
-When creating a histogram instance, you must provide the minimum and maximum trackable values and the wanted number of precision digits. If you need to create a histogram to record latency between one millisecond and one minute `[1ms..1min]` with a precision of 0.01, use the following :
+When creating a histogram instance, you must provide the minimum and maximum trackable values and the wanted number of precision digits. If you need to create a histogram to record latency between one millisecond and one minute `[1ms..1min]` with a precision of 0.01, use the following:
 
 
 ```vala
